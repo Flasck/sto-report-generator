@@ -8,6 +8,7 @@
 - TypeScript generation owns deterministic document structure: title page, styles, numbering, bibliography insertion, formula/table/figure blocks and page setup.
 - The `portable` renderer stops after TypeScript generation and optional DOCX XML validation. It does not import `win32com`, does not require Microsoft Word, and does not claim authoritative PDF pagination.
 - The `word` renderer is the explicit compatibility path for Word-dependent repair and normalization after the DOCX exists: field updates, Word formula repair, TOC, image/table normalization and PDF export.
+- The `accept-word` command is a separate final-acceptance path for an already generated DOCX. From WSL it invokes Windows PowerShell and Microsoft Word COM directly, writes a separate accepted DOCX/PDF by default, verifies stable Word page count after reopen, and emits a JSON manifest. It does not run the Python/pywin32 repair pipeline.
 - DOCX validator owns final XML assertions after unpacking: actual styles, section margins, page numbering, captions, fields, table/image layout and generated citation/math integrity.
 - Do not move business rules into post-build only because they are convenient there. Prefer source preflight for authoring errors and DOCX validator for final layout assertions.
 
@@ -22,12 +23,14 @@
 - `docx_package.py` reads and rewrites DOCX ZIP parts and clears dirty Word field flags.
 - `xml_layout.py` performs pure DOCX XML normalization and counts figures, tables, and used sources. Source count is derived from the highest generated citation number, because TypeScript emits only cited bibliography records and numbers them densely by first use. Add XML-only fixes here when Word COM is not needed.
 - `word_automation.py` contains all `win32com`/Word COM operations: TOC update, table header repeat, image normalization, small-table keep-together handling and PDF export. It must fail early with an actionable unsupported-platform message on Linux, WSL, and macOS.
+- `scripts/word_acceptance.ps1` contains the acceptance-only Word COM runtime used by `src/app/word-acceptance.ts`. Keep the PowerShell source ASCII-safe; pass localized style names through the UTF-8 JSON request generated from TypeScript style configuration.
 
 ## Document-Control Notes
 
 - Page margins, page-number footer placement, hidden title-page number, caption adjacency and style conformance are validator responsibilities. Post-build may normalize them only if Word/COM is required.
 - Repeated table headers are normalized in Word COM and verified by the DOCX validator.
 - Table spacing after data tables is an XML normalization step because it does not require Word pagination.
+- Submission-ready pagination evidence is the accepted DOCX/PDF produced by the target Windows Microsoft Word pass plus the acceptance manifest. LibreOffice is not a supported final renderer.
 - Future no-break number/unit normalization should live in `xml_layout.py` if it can be applied safely to `w:t` runs without breaking formulas, URLs or table machine data.
 - Appendix-local numbering should be implemented in the TypeScript parser/reference registry first; post-build should not infer appendix numbering from rendered text.
 

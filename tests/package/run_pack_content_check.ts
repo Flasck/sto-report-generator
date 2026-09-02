@@ -90,8 +90,24 @@ function isForbiddenPath(filePath: string): boolean {
 		filePath.startsWith('.temp') ||
 		filePath.endsWith('.docx') ||
 		filePath.endsWith('.pdf') ||
+		filePath.endsWith('.acceptance.json') ||
 		filePath.endsWith('.log')
 	);
+}
+
+function assertRequiredFiles(packedFiles: PackedFile[]): void {
+	const packedPaths = new Set(packedFiles.map(file => file.path));
+	const requiredPaths = ['LICENSE', 'scripts/word_acceptance.ps1'];
+	const missingPaths = requiredPaths.filter(
+		filePath => !packedPaths.has(filePath),
+	);
+	if (missingPaths.length > 0) {
+		console.error('Required files are missing from npm package:');
+		for (const filePath of missingPaths) {
+			console.error(`- ${filePath}`);
+		}
+		process.exit(1);
+	}
 }
 
 const generatedExampleDocx = path.join(
@@ -124,6 +140,7 @@ try {
 		console.error('npm pack did not report any packaged files.');
 		process.exit(1);
 	}
+	assertRequiredFiles(packedFiles);
 
 	console.log(
 		`Package content check passed for ${packedFiles.length} files after portable example audit.`,

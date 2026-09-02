@@ -9,6 +9,7 @@ const tests = [
 	['tests/validator/run_validator_tests.ts'],
 	['tests/generator/run_generated_docx_validation.ts'],
 	['tests/workflow/run_portability_tests.ts'],
+	['tests/workflow/run_word_acceptance_tests.ts'],
 	['tests/generator/title_page_metadata_test.ts'],
 	['tests/generator/front_matter_docx_test.ts'],
 	['tests/scaffold/run_scaffold_tests.ts'],

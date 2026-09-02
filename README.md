@@ -34,17 +34,32 @@ npm run audit:report -- reports/my_report --renderer portable
 npm run audit:report -- reports/my_report --renderer word
 ```
 
+Если DOCX уже собран в WSL и нужен только финальный пропуск через Microsoft Word на Windows-хосте:
+
+```bash
+npm run accept:word -- reports/my_report/build/my_report.docx --style-preset samara-template-2022
+```
+
+Команда `accept-word` вызывает Windows PowerShell и Word COM напрямую. Она не требует Windows Python и `pywin32`, не
+запускает LibreOffice и по умолчанию сохраняет отдельные файлы
+`*.accepted.docx`, `*.accepted.pdf`, `*.acceptance.json` рядом с исходным DOCX.
+
 ## Что поддерживается
 
-| Возможность                                                   | Переносимый режим | Word-режим |
-| ------------------------------------------------------------- | ----------------- | ---------- |
-| Создание структуры отчета                                     | Да                | Да         |
-| Preflight исходных Markdown-файлов                            | Да                | Да         |
-| Сборка `.docx` из Markdown, формул, таблиц, рисунков и BibTeX | Да                | Да         |
-| Проверка структуры DOCX через OpenXML                         | Да                | Да         |
-| Имена стилей Самарского шаблона через `stylePreset`           | Да                | Да         |
-| Обновление полей Word и оглавления                            | Нет               | Да         |
-| Авторитетная пагинация и PDF                                  | Нет               | Да         |
+| Возможность                                                   | Переносимый режим | Word-режим | `accept-word` |
+| ------------------------------------------------------------- | ----------------- | ---------- | ------------- |
+| Создание структуры отчета                                     | Да                | Да         | Нет           |
+| Preflight исходных Markdown-файлов                            | Да                | Да         | Нет           |
+| Сборка `.docx` из Markdown, формул, таблиц, рисунков и BibTeX | Да                | Да         | Нет           |
+| Проверка структуры DOCX через OpenXML                         | Да                | Да         | Нет           |
+| Имена стилей Самарского шаблона через `stylePreset`           | Да                | Да         | Проверяет     |
+| Обновление полей Word и оглавления                            | Нет               | Да         | Да            |
+| Авторитетная пагинация и PDF                                  | Нет               | Да         | Да            |
+
+Переносимый режим означает кроссплатформенную OOXML-сборку и структурную проверку. Это не авторитетная пагинация.
+Доказательство готовности к сдаче - принятые `*.accepted.docx` и `*.accepted.pdf`, созданные целевым Microsoft Word, плюс
+JSON-манифест `*.acceptance.json` с версией Word, числом страниц, хешами файлов, проверкой Times New Roman и проверкой
+ожидаемых стилей. LibreOffice не является поддерживаемым финальным renderer.
 
 LibreOffice и Microsoft Graph пока остаются backlog: для них здесь не доказан desktop-identical контракт с Word. Electron
 не входит в текущую границу продукта; основной интерфейс - CLI и агентные сценарии.
@@ -174,6 +189,24 @@ Word/PDF включается явно:
 }
 ```
 
+Финальная приемка уже созданного DOCX через Word:
+
+```bash
+npm run accept:word -- reports/my_report/build/my_report.docx \
+  --accepted-docx reports/my_report/build/my_report.accepted.docx \
+  --pdf reports/my_report/build/my_report.accepted.pdf \
+  --manifest reports/my_report/build/my_report.acceptance.json \
+  --style-preset samara-template-2022
+```
+
+На WSL команда использует `powershell.exe` Windows-хоста и конвертирует пути через `wslpath`. На native Windows она
+использует установленный Microsoft Word напрямую. На macOS и обычном Linux без Windows-хоста команда завершается рано с
+инструкцией запустить приемку на WSL/Windows. Для `samara-template-2022` список ожидаемых отображаемых имен стилей
+берется из TypeScript-конфигурации генератора и передается в PowerShell через UTF-8 JSON.
+
+`accept-word` не заменяет `--renderer word`: он не выполняет Python/pywin32 post-build, не чинит формулы и не делает
+format-repair из `scripts/sto_post_build/`. Это только финальная приемка уже сгенерированного DOCX в Microsoft Word.
+
 Пути в `report.config.json` должны быть относительными к папке отчета. Локальные абсолютные пути, личные каталоги,
 закрытые ссылки и идентификаторы пользователей не должны попадать в README, инвентарь источников или публичные fixtures.
 
@@ -197,12 +230,13 @@ Preset меняет только отображаемые имена сопос�
 npm run doctor
 npm run check:source -- example
 npm run audit:report -- example --renderer portable
+npm run accept:word -- example/build/example.docx --style-preset samara-template-2022
 npm run check:pack
 npm run quality
 ```
 
-`npm run doctor` показывает доступность переносимого режима и состояние Word-режима для текущей платформы. Он не должен
-печатать личные пути.
+`npm run doctor` показывает доступность переносимого режима, legacy Word-режима и Word acceptance для текущей платформы.
+Он не должен печатать личные пути.
 
 ## Preview
 
@@ -220,15 +254,15 @@ npm run audit:report -- example --renderer portable
 
 ## Частые проблемы
 
-| Симптом                             | Что проверить                                                                                  |
-| ----------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `audit` пропускает post-build       | Проверьте `--renderer`: portable сознательно не запускает Word.                                |
-| Нужен PDF с точной пагинацией       | Запустите `npm run audit:report -- reports/<slug> --renderer word` в Windows с Microsoft Word. |
-| Preflight отклоняет список          | Используйте `sto_list` или `sto_enum` в исходниках отчета.                                     |
-| Preflight отклоняет `\begin{...}`   | Проверьте список окружений в `src/shared/config/sto-rules.json`.                               |
-| Не найден рисунок                   | Укажите путь относительно папки отчета, например `images/chart.png`.                           |
-| Цитата осталась как `[@key]`        | Добавьте запись в `references.bib` и проверьте поле `bibliography`.                            |
-| Названия стилей не похожи на шаблон | Добавьте `stylePreset: "samara-template-2022"` в `report.config.json`.                         |
+| Симптом                             | Что проверить                                                                                                                                                                                   |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `audit` пропускает post-build       | Проверьте `--renderer`: portable сознательно не запускает Word.                                                                                                                                 |
+| Нужен PDF с точной пагинацией       | Для полной post-build обработки запустите `npm run audit:report -- reports/<slug> --renderer word` в Windows; для уже собранного DOCX запустите `npm run accept:word -- <docx>` из WSL/Windows. |
+| Preflight отклоняет список          | Используйте `sto_list` или `sto_enum` в исходниках отчета.                                                                                                                                      |
+| Preflight отклоняет `\begin{...}`   | Проверьте список окружений в `src/shared/config/sto-rules.json`.                                                                                                                                |
+| Не найден рисунок                   | Укажите путь относительно папки отчета, например `images/chart.png`.                                                                                                                            |
+| Цитата осталась как `[@key]`        | Добавьте запись в `references.bib` и проверьте поле `bibliography`.                                                                                                                             |
+| Названия стилей не похожи на шаблон | Добавьте `stylePreset: "samara-template-2022"` в `report.config.json`.                                                                                                                          |
 
 ## Документация
 

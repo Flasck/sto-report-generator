@@ -48,6 +48,19 @@ const SAMARA_TEMPLATE_2022_STYLE_NAMES: Record<string, string> = {
 	TOC4: '+Оглавление 4',
 };
 
+function getSamaraTemplate2022StyleNames(): Record<string, string> {
+	const headingStyleNames = Object.fromEntries(
+		NUMBERED_HEADING_STYLE_IDS.map((styleId, index) => [
+			styleId,
+			`+Заголовок ${index + 1} уровня`,
+		]),
+	);
+	return {
+		...SAMARA_TEMPLATE_2022_STYLE_NAMES,
+		...headingStyleNames,
+	};
+}
+
 export function isStoStylePreset(value: unknown): value is StoStylePreset {
 	return (
 		typeof value === 'string' &&
@@ -56,11 +69,7 @@ export function isStoStylePreset(value: unknown): value is StoStylePreset {
 }
 
 function getSamaraTemplate2022StyleName(styleId: string): string | undefined {
-	const headingMatch = /^StoHeading([1-6])$/.exec(styleId);
-	if (headingMatch) {
-		return `+Заголовок ${headingMatch[1]} уровня`;
-	}
-	return SAMARA_TEMPLATE_2022_STYLE_NAMES[styleId];
+	return getSamaraTemplate2022StyleNames()[styleId];
 }
 
 function applySamaraTemplate2022StyleNames(
@@ -291,6 +300,14 @@ export function getStoStyles(
 			applySamaraTemplate2022StyleNames,
 		),
 	};
+}
+
+export function getStoStylePresetDisplayNames(
+	stylePreset: StoStylePreset,
+): Record<string, string> {
+	return stylePreset === 'samara-template-2022'
+		? getSamaraTemplate2022StyleNames()
+		: {};
 }
 
 export const STO_NUMBERING: INumberingOptions = {

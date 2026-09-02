@@ -3,6 +3,8 @@ import os from 'node:os';
 import { buildReport } from '@/app/builder';
 import { scaffoldReport } from '@/app/report-scaffold';
 import { generateReport, validateDocxFile } from '@/app/report-workflow';
+import { runWordAcceptance } from '@/app/word-acceptance';
+import { isStoStylePreset, StoStylePreset } from '@/shared/config';
 import {
 	isReportProfile,
 	isReportRenderer,
@@ -26,6 +28,7 @@ const COMMANDS = new Set([
 	'check',
 	'generate',
 	'audit',
+	'accept-word',
 	'validate-docx',
 	'doctor',
 	'help',
@@ -106,6 +109,19 @@ function optionRenderer(args: ParsedArgs): ReportRenderer | undefined {
 	return value;
 }
 
+function optionStylePreset(args: ParsedArgs): StoStylePreset | undefined {
+	const value = optionString(args, 'style-preset');
+	if (value === undefined) {
+		return undefined;
+	}
+	if (!isStoStylePreset(value)) {
+		throw new Error(
+			'Supported style presets: default, samara-template-2022.',
+		);
+	}
+	return value;
+}
+
 function printHelp(): void {
 	console.log(`STO Report Generator
 
@@ -115,6 +131,7 @@ Usage:
   npx tsx src/index.ts check <report_dir> [--strict]
   npx tsx src/index.ts generate <report_dir> [--output build/report.docx] [--renderer portable|word] [--post-build] [--validate]
   npx tsx src/index.ts audit <report_dir> [--output build/report.docx] [--renderer portable|word]
+  npx tsx src/index.ts accept-word <input.docx> [--accepted-docx accepted.docx] [--pdf accepted.pdf] [--manifest acceptance.json] [--style-preset default|samara-template-2022]
   npx tsx src/index.ts validate-docx <report.docx> [unpack_dir]
   npx tsx src/index.ts doctor
 
@@ -251,6 +268,20 @@ async function runAudit(args: ParsedArgs): Promise<void> {
 	console.log('DOCX validation passed.');
 }
 
+function runAcceptWord(args: ParsedArgs): void {
+	const inputDocx = args.positionals[1];
+	if (!inputDocx) {
+		throw new Error('accept-word command requires an input DOCX path.');
+	}
+	runWordAcceptance({
+		inputDocx,
+		acceptedDocx: optionString(args, 'accepted-docx'),
+		pdf: optionString(args, 'pdf'),
+		manifest: optionString(args, 'manifest'),
+		stylePreset: optionStylePreset(args),
+	});
+}
+
 function currentPlatformLabel(): string {
 	const release = os.release().toLowerCase();
 	if (
@@ -280,11 +311,30 @@ function runDoctor(): void {
 		console.log(
 			'  Requires Microsoft Word and pywin32 at post-build runtime. Run --renderer word to verify COM access on a real document.',
 		);
+		console.log(
+			'Word acceptance: available when Microsoft Word is installed.',
+		);
+		return;
+	}
+	if (platform === 'Linux/WSL') {
+		console.log('Word renderer: unavailable');
+		console.log(
+			'  The legacy full post-build requires native Windows Python and pywin32.',
+		);
+		console.log(
+			'Word acceptance: available when Windows PowerShell and Microsoft Word are installed on the host.',
+		);
+		console.log(
+			'  Run npm run accept:word -- <docx> to create an accepted DOCX/PDF and JSON manifest from WSL.',
+		);
 		return;
 	}
 	console.log('Word renderer: unavailable');
 	console.log(
 		`  Current platform is ${platform}. Use --renderer portable here, or run --renderer word on native Windows with Microsoft Word and pywin32 installed.`,
+	);
+	console.log(
+		'Word acceptance: unavailable. Run accept-word from WSL connected to a Windows Word host or from native Windows.',
 	);
 }
 
@@ -338,6 +388,9 @@ async function main(): Promise<void> {
 			break;
 		case 'audit':
 			await runAudit(args);
+			break;
+		case 'accept-word':
+			runAcceptWord(args);
 			break;
 		case 'validate-docx':
 			runValidateDocx(args);
