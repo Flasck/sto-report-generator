@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { resolveReportConfig } from '@/shared/lib/report-config';
 import { runSourcePreflight } from '@/shared/lib/source-preflight';
 
 const tempRoot = path.join(
@@ -194,6 +195,14 @@ fs.mkdirSync(tempRoot, { recursive: true });
 
 expectPass('valid-minimal', validFiles());
 expectPass(
+	'valid-style-preset',
+	validFiles({
+		'report.config.json': JSON.stringify({
+			stylePreset: 'samara-template-2022',
+		}),
+	}),
+);
+expectPass(
 	'referat-without-figure-table-placeholders',
 	validFiles({
 		'01_referat.md': `\\sto_structural_heading{РЕФЕРАТ}
@@ -213,6 +222,16 @@ expectIssue(
 );
 
 expectIssue(
+	'unknown-style-preset',
+	validFiles({
+		'report.config.json': JSON.stringify({
+			stylePreset: 'samara-template-2021',
+		}),
+	}),
+	'report-config-unknown-style-preset',
+);
+
+expectIssue(
 	'absolute-config-path',
 	validFiles({
 		'report.config.json': JSON.stringify({
@@ -222,6 +241,39 @@ expectIssue(
 	}),
 	'report-config-absolute-path',
 );
+
+expectIssue(
+	'unknown-renderer',
+	validFiles({
+		'report.config.json': JSON.stringify({ renderer: 'cloud' }),
+	}),
+	'report-config-unknown-renderer',
+);
+
+expectIssue(
+	'portable-renderer-post-build-conflict',
+	validFiles({
+		'report.config.json': JSON.stringify({
+			renderer: 'portable',
+			postBuild: { enabled: true },
+		}),
+	}),
+	'report-config-renderer-conflict',
+);
+
+{
+	const legacyDir = writeReport('legacy-post-build-renderer', validFiles());
+	const legacyConfig = resolveReportConfig(legacyDir, {
+		postBuild: true,
+	}).config;
+	assert.equal(legacyConfig.renderer, 'word');
+	assert.equal(legacyConfig.postBuild.enabled, true);
+	const portableConfig = resolveReportConfig(legacyDir, {
+		renderer: 'portable',
+	}).config;
+	assert.equal(portableConfig.renderer, 'portable');
+	assert.equal(portableConfig.postBuild.enabled, false);
+}
 
 expectIssue(
 	'lab-citation-requires-sources',

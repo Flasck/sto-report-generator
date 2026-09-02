@@ -1,7 +1,15 @@
+import os from 'node:os';
+
 import { buildReport } from '@/app/builder';
 import { scaffoldReport } from '@/app/report-scaffold';
 import { generateReport, validateDocxFile } from '@/app/report-workflow';
-import { isReportProfile, ReportProfile } from '@/shared/lib/report-config';
+import {
+	isReportProfile,
+	isReportRenderer,
+	REPORT_RENDERERS,
+	ReportProfile,
+	ReportRenderer,
+} from '@/shared/lib/report-config';
 import {
 	formatSourcePreflightIssue,
 	runSourcePreflight,
@@ -19,6 +27,7 @@ const COMMANDS = new Set([
 	'generate',
 	'audit',
 	'validate-docx',
+	'doctor',
 	'help',
 ]);
 
@@ -86,6 +95,17 @@ function optionProfile(args: ParsedArgs): ReportProfile | undefined {
 	return value;
 }
 
+function optionRenderer(args: ParsedArgs): ReportRenderer | undefined {
+	const value = optionString(args, 'renderer');
+	if (value === undefined) {
+		return undefined;
+	}
+	if (!isReportRenderer(value)) {
+		throw new Error(`Supported renderers: ${REPORT_RENDERERS.join(', ')}.`);
+	}
+	return value;
+}
+
 function printHelp(): void {
 	console.log(`STO Report Generator
 
@@ -93,9 +113,10 @@ Usage:
   npx tsx src/index.ts build <input.md|report_dir> <output.docx>
   npx tsx src/index.ts new <slug> [--profile nir|coursework|lab] [--title "..."] [--dir reports/<slug>] [--no-git]
   npx tsx src/index.ts check <report_dir> [--strict]
-  npx tsx src/index.ts generate <report_dir> [--output build/report.docx] [--post-build] [--validate]
-  npx tsx src/index.ts audit <report_dir> [--output build/report.docx]
+  npx tsx src/index.ts generate <report_dir> [--output build/report.docx] [--renderer portable|word] [--post-build] [--validate]
+  npx tsx src/index.ts audit <report_dir> [--output build/report.docx] [--renderer portable|word]
   npx tsx src/index.ts validate-docx <report.docx> [unpack_dir]
+  npx tsx src/index.ts doctor
 
 Backward-compatible form still works:
   npx tsx src/index.ts <input.md|report_dir> <output.docx>`);
@@ -173,16 +194,28 @@ async function runGenerate(args: ParsedArgs): Promise<void> {
 	if (!reportDir) {
 		throw new Error('generate command requires a report directory.');
 	}
+	const renderer = optionRenderer(args);
+	const postBuild = optionBoolean(args, 'post-build');
+	if (renderer === 'portable' && postBuild === true) {
+		throw new Error(
+			'--post-build is the legacy Word COM renderer path. Use --renderer word for Word/PDF post-build, or omit --post-build for --renderer portable.',
+		);
+	}
 
 	const result = await generateReport({
 		reportDir,
 		outputPath: optionString(args, 'output'),
-		postBuild: optionBoolean(args, 'post-build'),
+		renderer,
+		postBuild,
 		validate: optionBoolean(args, 'validate'),
 	});
 
 	console.log(`Generated ${result.outputDocx}`);
+	console.log(`Renderer: ${result.renderer}`);
 	console.log(`Post-build: ${result.postBuildRan ? 'ran' : 'skipped'}`);
+	if (result.renderer === 'portable') {
+		console.log('PDF pagination: not authoritative in portable renderer.');
+	}
 	if (result.validation) {
 		console.log('DOCX validation passed.');
 	}
@@ -193,11 +226,12 @@ async function runAudit(args: ParsedArgs): Promise<void> {
 	if (!reportDir) {
 		throw new Error('audit command requires a report directory.');
 	}
+	const renderer = optionRenderer(args) ?? 'portable';
 
 	const result = await generateReport({
 		reportDir,
 		outputPath: optionString(args, 'output'),
-		postBuild: true,
+		renderer,
 		validate: true,
 	});
 	const warnings = result.preflight.issues.filter(
@@ -212,8 +246,46 @@ async function runAudit(args: ParsedArgs): Promise<void> {
 			? `Source preflight passed with ${warnings.length} warning(s).`
 			: 'Source preflight passed.',
 	);
-	console.log('Post-build ran.');
+	console.log(`Renderer: ${result.renderer}`);
+	console.log(`Post-build: ${result.postBuildRan ? 'ran' : 'skipped'}`);
 	console.log('DOCX validation passed.');
+}
+
+function currentPlatformLabel(): string {
+	const release = os.release().toLowerCase();
+	if (
+		process.platform === 'linux' &&
+		(release.includes('microsoft') || release.includes('wsl'))
+	) {
+		return 'Linux/WSL';
+	}
+	if (process.platform === 'win32') {
+		return 'Windows';
+	}
+	if (process.platform === 'darwin') {
+		return 'macOS';
+	}
+	return process.platform;
+}
+
+function runDoctor(): void {
+	const platform = currentPlatformLabel();
+	console.log('STO doctor');
+	console.log('Portable renderer: available');
+	console.log(
+		'  Builds and validates DOCX with Node/OpenXML; PDF pagination is not authoritative.',
+	);
+	if (process.platform === 'win32') {
+		console.log('Word renderer: optional');
+		console.log(
+			'  Requires Microsoft Word and pywin32 at post-build runtime. Run --renderer word to verify COM access on a real document.',
+		);
+		return;
+	}
+	console.log('Word renderer: unavailable');
+	console.log(
+		`  Current platform is ${platform}. Use --renderer portable here, or run --renderer word on native Windows with Microsoft Word and pywin32 installed.`,
+	);
 }
 
 function runValidateDocx(args: ParsedArgs): void {
@@ -269,6 +341,9 @@ async function main(): Promise<void> {
 			break;
 		case 'validate-docx':
 			runValidateDocx(args);
+			break;
+		case 'doctor':
+			runDoctor();
 			break;
 	}
 }

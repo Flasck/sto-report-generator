@@ -15,9 +15,33 @@ import {
 	parseFrontmatter,
 	parseMarkdownToDocx,
 } from '@/features/markdown-parser';
-import { MARGINS, STO_NUMBERING, STO_STYLES } from '@/shared/config';
+import {
+	getStoStyles,
+	isStoStylePreset,
+	MARGINS,
+	STO_NUMBERING,
+	StoStylePreset,
+} from '@/shared/config';
 import { clearDirtyFieldFlags } from '@/shared/lib/docx-archive';
 import { createTitlePage, createTitlePageFooter } from '@/widgets/title-page';
+
+export interface BuildReportOptions {
+	stylePreset?: StoStylePreset;
+}
+
+function getMetadataStylePreset(
+	metadata: Record<string, unknown>,
+): StoStylePreset | undefined {
+	if (metadata.stylePreset === undefined) {
+		return undefined;
+	}
+	if (isStoStylePreset(metadata.stylePreset)) {
+		return metadata.stylePreset;
+	}
+	throw new Error(
+		`Unsupported stylePreset "${String(metadata.stylePreset)}". Supported presets: default, samara-template-2022.`,
+	);
+}
 
 /**
  * Builds the final STO-compliant report from markdown files.
@@ -27,6 +51,7 @@ import { createTitlePage, createTitlePageFooter } from '@/widgets/title-page';
 export async function buildReport(
 	inputPath: string,
 	outputPath: string,
+	options: BuildReportOptions = {},
 ): Promise<void> {
 	if (!fs.existsSync(inputPath)) {
 		throw new Error(`Path not found: ${inputPath}`);
@@ -81,6 +106,8 @@ export async function buildReport(
 	}
 
 	const reportMetadata = finalMetadata as unknown as ReportMetadata;
+	const stylePreset =
+		options.stylePreset ?? getMetadataStylePreset(finalMetadata);
 	const titlePage = createTitlePage(reportMetadata);
 	const documentBody = await parseMarkdownToDocx(
 		finalContent,
@@ -91,7 +118,7 @@ export async function buildReport(
 	);
 
 	const doc = new Document({
-		styles: STO_STYLES,
+		styles: getStoStyles(stylePreset),
 		numbering: STO_NUMBERING,
 		sections: [
 			{

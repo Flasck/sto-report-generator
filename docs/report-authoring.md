@@ -251,8 +251,11 @@ $$
 
 ```powershell
 npm run check:source -- reports/my_report
-npm run generate:report -- reports/my_report --post-build --validate
+npm run generate:report -- reports/my_report --renderer portable --validate
 ```
+
+`portable` собирает и проверяет DOCX без Microsoft Word и без PDF-пагинации. Для старого Word COM/PDF post-build
+используйте `--renderer word`; флаг `--post-build` оставлен как совместимый алиас Word-рендерера.
 
 Полный аудит одной командой:
 

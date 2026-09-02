@@ -1,5 +1,6 @@
 import contextlib
 import os
+import platform
 import re
 from collections.abc import Mapping
 from pathlib import Path
@@ -414,7 +415,18 @@ def replace_placeholders(doc: Any, replacements: Mapping[str, str]) -> None:
 
 
 def create_word_application() -> Any:
-    import win32com.client
+    if platform.system() != "Windows":
+        raise RuntimeError(
+            "Word renderer requires native Windows with Microsoft Word and pywin32. "
+            "Use --renderer portable on Linux, WSL, or macOS, or rerun --renderer word on native Windows."
+        )
+    try:
+        import win32com.client
+    except ModuleNotFoundError as error:
+        raise RuntimeError(
+            "Word renderer requires pywin32. Install Python dependencies with uv sync on native Windows, "
+            "then rerun --renderer word."
+        ) from error
 
     word = win32com.client.DispatchEx("Word.Application")
     word.Visible = False

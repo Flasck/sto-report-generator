@@ -6,7 +6,8 @@
 
 - Source preflight owns Markdown/config mistakes that can be found before DOCX generation: structure, citations, labels, bibliography, formulas, lists, appendices and soft STO text warnings.
 - TypeScript generation owns deterministic document structure: title page, styles, numbering, bibliography insertion, formula/table/figure blocks and page setup.
-- Python post-build owns Word-dependent repair and normalization after the DOCX exists: field updates, Word formula repair, TOC, image/table normalization and PDF export.
+- The `portable` renderer stops after TypeScript generation and optional DOCX XML validation. It does not import `win32com`, does not require Microsoft Word, and does not claim authoritative PDF pagination.
+- The `word` renderer is the explicit compatibility path for Word-dependent repair and normalization after the DOCX exists: field updates, Word formula repair, TOC, image/table normalization and PDF export.
 - DOCX validator owns final XML assertions after unpacking: actual styles, section margins, page numbering, captions, fields, table/image layout and generated citation/math integrity.
 - Do not move business rules into post-build only because they are convenient there. Prefer source preflight for authoring errors and DOCX validator for final layout assertions.
 
@@ -20,7 +21,7 @@
 - `math_conversion.py` converts LaTeX to MathML through MathJax and MathML to Office Math through the repository npm dependency `@hungknguyen/mathml2omml`; do not depend on a local Microsoft Office XSL path.
 - `docx_package.py` reads and rewrites DOCX ZIP parts and clears dirty Word field flags.
 - `xml_layout.py` performs pure DOCX XML normalization and counts figures, tables, and used sources. Source count is derived from the highest generated citation number, because TypeScript emits only cited bibliography records and numbers them densely by first use. Add XML-only fixes here when Word COM is not needed.
-- `word_automation.py` contains all `win32com`/Word COM operations: TOC update, table header repeat, image normalization, small-table keep-together handling and PDF export.
+- `word_automation.py` contains all `win32com`/Word COM operations: TOC update, table header repeat, image normalization, small-table keep-together handling and PDF export. It must fail early with an actionable unsupported-platform message on Linux, WSL, and macOS.
 
 ## Document-Control Notes
 
@@ -34,6 +35,7 @@
 
 - Do not add business logic to `scripts/post_build.py`; add it to the smallest matching module.
 - Keep `win32com` imports inside `word_automation.py` so non-Windows checks can import the rest of the package.
+- Keep `renderer: "portable"` as the cross-platform default in generated `report.config.json`; legacy `postBuild.enabled: true` remains a Word renderer compatibility signal.
 - Prefer pure XML changes in `xml_layout.py` when Word COM is not required.
 - Return dataclasses from orchestration boundaries instead of passing loose tuples.
 - Update `format_post_build_summary` when adding a new post-build metric.

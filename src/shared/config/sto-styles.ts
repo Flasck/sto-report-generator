@@ -25,6 +25,50 @@ export const NUMBERED_HEADING_STYLE_IDS = [
 export const HEADING_NUMBERING_REFERENCE = 'heading-numbering';
 export const STRUCTURAL_HEADING_STYLE_ID = 'StructuralHeading';
 export const STRUCTURAL_HEADING_NO_TOC_STYLE_ID = 'StructuralHeadingNoTOC';
+export const STO_STYLE_PRESET_NAMES = [
+	'default',
+	'samara-template-2022',
+] as const;
+
+export type StoStylePreset = (typeof STO_STYLE_PRESET_NAMES)[number];
+
+type ParagraphStyle = NonNullable<IStylesOptions['paragraphStyles']>[number];
+
+const SAMARA_TEMPLATE_2022_STYLE_NAMES: Record<string, string> = {
+	Normal: '+Абзац с отступом 1-ой строки',
+	[STRUCTURAL_HEADING_STYLE_ID]: '+ЗаголРеферСодерж',
+	[STRUCTURAL_HEADING_NO_TOC_STYLE_ID]: '+ЗаголРеферСодерж',
+	FigureCaption: '+№ - Название рисунка',
+	TableCaption: '+№ - Название таблицы',
+	TableText: '+Текст в таблице',
+	TitlePageText: '+Тит_Абзац по центру',
+	TOC1: '+Оглавление 1',
+	TOC2: '+Оглавление 2',
+	TOC3: '+Оглавление 3',
+	TOC4: '+Оглавление 4',
+};
+
+export function isStoStylePreset(value: unknown): value is StoStylePreset {
+	return (
+		typeof value === 'string' &&
+		STO_STYLE_PRESET_NAMES.includes(value as StoStylePreset)
+	);
+}
+
+function getSamaraTemplate2022StyleName(styleId: string): string | undefined {
+	const headingMatch = /^StoHeading([1-6])$/.exec(styleId);
+	if (headingMatch) {
+		return `+Заголовок ${headingMatch[1]} уровня`;
+	}
+	return SAMARA_TEMPLATE_2022_STYLE_NAMES[styleId];
+}
+
+function applySamaraTemplate2022StyleNames(
+	style: ParagraphStyle,
+): ParagraphStyle {
+	const presetName = getSamaraTemplate2022StyleName(style.id);
+	return presetName ? { ...style, name: presetName } : style;
+}
 
 export function getNumberedHeadingStyleId(depth: number): string {
 	const normalizedDepth = globalThis.Math.min(
@@ -233,6 +277,21 @@ export const STO_STYLES: IStylesOptions = {
 		...TOC_LEVEL_INDENTS.map((_, index) => createTocStyle(index + 1)),
 	],
 };
+
+export function getStoStyles(
+	stylePreset: StoStylePreset = 'default',
+): IStylesOptions {
+	if (stylePreset === 'default') {
+		return STO_STYLES;
+	}
+
+	return {
+		...STO_STYLES,
+		paragraphStyles: STO_STYLES.paragraphStyles?.map(
+			applySamaraTemplate2022StyleNames,
+		),
+	};
+}
 
 export const STO_NUMBERING: INumberingOptions = {
 	config: [

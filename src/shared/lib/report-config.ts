@@ -1,11 +1,18 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { STO_RULES } from '@/shared/config';
+import {
+	isStoStylePreset,
+	STO_RULES,
+	STO_STYLE_PRESET_NAMES,
+	StoStylePreset,
+} from '@/shared/config';
 
 export const REPORT_PROFILE_NAMES = ['nir', 'coursework', 'lab'] as const;
+export const REPORT_RENDERERS = ['portable', 'word'] as const;
 
 export type ReportProfile = (typeof REPORT_PROFILE_NAMES)[number];
+export type ReportRenderer = (typeof REPORT_RENDERERS)[number];
 export type RequireSourcesMode = boolean | 'when-cited';
 export type SoftTextRulesMode = 'warning' | 'off';
 
@@ -34,6 +41,8 @@ export interface ReportValidateConfig {
 export interface ReportConfig {
 	profile: ReportProfile;
 	profileExplicit: boolean;
+	renderer: ReportRenderer;
+	stylePreset: StoStylePreset;
 	sourceDir: string;
 	outputDocx: string;
 	frontMatterDocx?: string;
@@ -53,6 +62,7 @@ export interface ReportConfigDiagnostic {
 export interface ResolveReportConfigOptions {
 	cwd?: string;
 	outputPath?: string;
+	renderer?: ReportRenderer;
 	strict?: boolean;
 	postBuild?: boolean;
 	validate?: boolean;
@@ -65,6 +75,8 @@ type RawReportValidateConfig = Partial<ReportValidateConfig>;
 
 interface RawReportConfig {
 	profile?: unknown;
+	renderer?: unknown;
+	stylePreset?: unknown;
 	sourceDir?: unknown;
 	outputDocx?: unknown;
 	frontMatterDocx?: unknown;
@@ -121,6 +133,13 @@ export function isReportProfile(value: unknown): value is ReportProfile {
 	return (
 		typeof value === 'string' &&
 		REPORT_PROFILE_NAMES.includes(value as ReportProfile)
+	);
+}
+
+export function isReportRenderer(value: unknown): value is ReportRenderer {
+	return (
+		typeof value === 'string' &&
+		REPORT_RENDERERS.includes(value as ReportRenderer)
 	);
 }
 
@@ -256,6 +275,25 @@ function normalizeRawConfig(
 			code: 'report-config-unknown-profile',
 			file: configPath,
 			message: `Unknown report profile "${String(config.profile)}". Supported profiles: ${REPORT_PROFILE_NAMES.join(', ')}.`,
+			severity: 'error',
+		});
+	}
+	if (config.renderer !== undefined && !isReportRenderer(config.renderer)) {
+		diagnostics.push({
+			code: 'report-config-unknown-renderer',
+			file: configPath,
+			message: `Unknown report renderer "${String(config.renderer)}". Supported renderers: ${REPORT_RENDERERS.join(', ')}.`,
+			severity: 'error',
+		});
+	}
+	if (
+		config.stylePreset !== undefined &&
+		!isStoStylePreset(config.stylePreset)
+	) {
+		diagnostics.push({
+			code: 'report-config-unknown-style-preset',
+			file: configPath,
+			message: `Unknown report stylePreset "${String(config.stylePreset)}". Supported presets: ${STO_STYLE_PRESET_NAMES.join(', ')}.`,
 			severity: 'error',
 		});
 	}
@@ -418,6 +456,27 @@ function normalizeRawConfig(
 				);
 			}
 		}
+		if (
+			config.renderer === 'portable' &&
+			config.postBuild.enabled === true
+		) {
+			diagnostics.push({
+				code: 'report-config-renderer-conflict',
+				file: configPath,
+				message:
+					'report.config.json cannot combine renderer "portable" with postBuild.enabled true. Use renderer "word" for Word COM post-build, or disable postBuild for the portable path.',
+				severity: 'error',
+			});
+		}
+		if (config.renderer === 'word' && config.postBuild.enabled === false) {
+			diagnostics.push({
+				code: 'report-config-renderer-conflict',
+				file: configPath,
+				message:
+					'report.config.json cannot combine renderer "word" with postBuild.enabled false. Use renderer "portable" for no Word post-build.',
+				severity: 'error',
+			});
+		}
 	}
 
 	if (config.validate !== undefined && !isObject(config.validate)) {
@@ -525,10 +584,23 @@ export function resolveReportConfig(
 	const profileExplicit = isReportProfile(rawProfile);
 	const profile = profileExplicit ? rawProfile : 'nir';
 	const reportSlug = path.basename(absoluteReportDir);
+	const rawPostBuildEnabled = isObject(raw.postBuild)
+		? asBoolean(raw.postBuild.enabled)
+		: undefined;
+	const renderer =
+		options.renderer ??
+		(isReportRenderer(raw.renderer) ? raw.renderer : undefined) ??
+		(options.postBuild === true || rawPostBuildEnabled === true
+			? 'word'
+			: 'portable');
 
 	const config: ReportConfig = {
 		profile,
 		profileExplicit,
+		renderer,
+		stylePreset: isStoStylePreset(raw.stylePreset)
+			? raw.stylePreset
+			: 'default',
 		sourceDir: asString(raw.sourceDir) ?? '.',
 		outputDocx:
 			options.outputPath ??
@@ -554,12 +626,7 @@ export function resolveReportConfig(
 					: 'warning',
 		},
 		postBuild: {
-			enabled:
-				options.postBuild ??
-				(isObject(raw.postBuild)
-					? asBoolean(raw.postBuild.enabled)
-					: undefined) ??
-				false,
+			enabled: renderer === 'word',
 			exportPdf:
 				(isObject(raw.postBuild)
 					? asBoolean(raw.postBuild.exportPdf)

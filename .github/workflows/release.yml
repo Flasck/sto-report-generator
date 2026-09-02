@@ -23,11 +23,21 @@ jobs:
                   node-version: 24.x
                   cache: npm
 
-            - name: Install dependencies
+            - name: Set up uv
+              uses: astral-sh/setup-uv@v8.1.0
+              with:
+                  enable-cache: true
+                  cache-python: true
+                  python-version: '3.12'
+
+            - name: Install Node dependencies
               run: npm ci
 
+            - name: Install Python tooling
+              run: uv sync --group dev
+
             - name: Run quality gate
-              run: npm run ci:check
+              run: npm run quality
 
             - name: Pack npm artifact
               run: npm pack --pack-destination .agent-work

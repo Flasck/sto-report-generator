@@ -192,7 +192,8 @@ function reportReadmeTemplate(
 Команды запускаются из корня генератора:
 
     npm run check:source -- ${reportPath}
-    npm run generate:report -- ${reportPath} --post-build --validate
+    npm run generate:report -- ${reportPath} --renderer portable --validate
+    npm run generate:report -- ${reportPath} --renderer word --validate
 
 Файлы отчета собираются по алфавиту. Сохраняйте смысловые блоки в отдельных Markdown-файлах и не переносите весь отчет в один файл.
 
@@ -229,6 +230,7 @@ function reportConfigTemplate(slug: string, profile: ReportProfile): string {
 	return `${JSON.stringify(
 		{
 			profile,
+			renderer: 'portable',
 			sourceDir: '.',
 			outputDocx: `build/${slug}.docx`,
 			document: documentConfig,
@@ -237,7 +239,7 @@ function reportConfigTemplate(slug: string, profile: ReportProfile): string {
 				softTextRules: 'warning',
 			},
 			postBuild: {
-				enabled: true,
+				enabled: false,
 				exportPdf: true,
 			},
 			validate: {

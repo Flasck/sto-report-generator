@@ -6,6 +6,7 @@ import {
 	unpackDocx,
 } from '@/shared/lib/docx-archive';
 import {
+	ReportRenderer,
 	resolveReportConfig,
 	resolveReportPath,
 } from '@/shared/lib/report-config';
@@ -21,6 +22,7 @@ import { buildReport } from './builder';
 export interface GenerateReportOptions {
 	reportDir: string;
 	outputPath?: string;
+	renderer?: ReportRenderer;
 	postBuild?: boolean;
 	validate?: boolean;
 }
@@ -31,6 +33,7 @@ export interface GenerateReportResult {
 	outputDocx: string;
 	preflight: SourcePreflightResult;
 	validation?: ValidationResult[];
+	renderer: ReportRenderer;
 	postBuildRan: boolean;
 }
 
@@ -86,6 +89,7 @@ export async function generateReport(
 	const reportDir = path.resolve(options.reportDir);
 	const { config, diagnostics } = resolveReportConfig(reportDir, {
 		outputPath: options.outputPath,
+		renderer: options.renderer,
 		postBuild: options.postBuild,
 		validate: options.validate,
 	});
@@ -105,7 +109,9 @@ export async function generateReport(
 		);
 	}
 
-	await buildReport(sourceDir, outputDocx);
+	await buildReport(sourceDir, outputDocx, {
+		stylePreset: config.stylePreset,
+	});
 
 	if (config.frontMatterDocx) {
 		insertDocxBodyBeforeText({
@@ -140,6 +146,7 @@ export async function generateReport(
 		outputDocx,
 		preflight,
 		validation,
+		renderer: config.renderer,
 		postBuildRan: config.postBuild.enabled,
 	};
 }

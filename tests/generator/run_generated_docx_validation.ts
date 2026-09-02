@@ -3,18 +3,80 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { buildReport } from '@/app/builder';
-import { unpackDocx } from '@/shared/lib/docx-archive';
+import {
+	NUMBERED_HEADING_STYLE_IDS,
+	STRUCTURAL_HEADING_NO_TOC_STYLE_ID,
+	STRUCTURAL_HEADING_STYLE_ID,
+} from '@/shared/config';
+import { readDocxEntry, unpackDocx } from '@/shared/lib/docx-archive';
 import { validateSTO } from '@/shared/lib/sto-validator';
 
 const tempRoot = path.join(process.cwd(), '.agent-work', 'generated-docx');
 const outputDocx = path.join(tempRoot, 'example.docx');
+const samaraPresetDocx = path.join(tempRoot, 'example-samara-preset.docx');
 const unpackedDir = path.join(tempRoot, 'unpacked');
+const STYLE_NAME_ASSERTIONS = new Map<string, string>([
+	['Normal', '+Абзац с отступом 1-ой строки'],
+	[STRUCTURAL_HEADING_STYLE_ID, '+ЗаголРеферСодерж'],
+	[STRUCTURAL_HEADING_NO_TOC_STYLE_ID, '+ЗаголРеферСодерж'],
+	['FigureCaption', '+№ - Название рисунка'],
+	['TableCaption', '+№ - Название таблицы'],
+	['TableText', '+Текст в таблице'],
+	['TitlePageText', '+Тит_Абзац по центру'],
+	['TOC1', '+Оглавление 1'],
+	['TOC2', '+Оглавление 2'],
+	['TOC3', '+Оглавление 3'],
+	['TOC4', '+Оглавление 4'],
+]);
+
+for (const styleId of NUMBERED_HEADING_STYLE_IDS) {
+	const level = NUMBERED_HEADING_STYLE_IDS.indexOf(styleId) + 1;
+	STYLE_NAME_ASSERTIONS.set(styleId, `+Заголовок ${level} уровня`);
+}
+
+function findStyleXml(stylesXml: string, styleId: string): string {
+	const match = new RegExp(
+		`<w:style\\b(?=[^>]*\\bw:styleId="${styleId}")[\\s\\S]*?<\\/w:style>`,
+	).exec(stylesXml);
+	assert.ok(match, `Style ${styleId} must exist`);
+	return match[0];
+}
+
+function getStyleName(styleXml: string): string {
+	const match = /<w:name\b[^>]*\bw:val="([^"]+)"/.exec(styleXml);
+	assert.ok(match, 'Style must include w:name');
+	return match[1];
+}
+
+function stripStyleNames(styleXml: string): string {
+	return styleXml.replace(/<w:name\b[^>]*\/>/g, '<w:name/>');
+}
+
+function assertSamaraPresetStyleNames(): void {
+	const defaultStylesXml = readDocxEntry(outputDocx, 'word/styles.xml');
+	const presetStylesXml = readDocxEntry(samaraPresetDocx, 'word/styles.xml');
+
+	for (const [styleId, expectedName] of STYLE_NAME_ASSERTIONS) {
+		const defaultStyleXml = findStyleXml(defaultStylesXml, styleId);
+		const presetStyleXml = findStyleXml(presetStylesXml, styleId);
+		assert.equal(getStyleName(presetStyleXml), expectedName);
+		assert.equal(
+			stripStyleNames(presetStyleXml),
+			stripStyleNames(defaultStyleXml),
+			`${styleId} changed beyond display name`,
+		);
+	}
+}
 
 async function main(): Promise<void> {
 	fs.rmSync(tempRoot, { recursive: true, force: true });
 	fs.mkdirSync(tempRoot, { recursive: true });
 
 	await buildReport('example', outputDocx);
+	await buildReport('example', samaraPresetDocx, {
+		stylePreset: 'samara-template-2022',
+	});
+	assertSamaraPresetStyleNames();
 	unpackDocx(outputDocx, unpackedDir);
 
 	const failed = validateSTO(unpackedDir).filter(result => !result.passed);
