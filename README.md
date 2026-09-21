@@ -37,7 +37,7 @@ npm run audit:report -- reports/my_report --renderer word
 Если DOCX уже собран в WSL и нужен только финальный пропуск через Microsoft Word на Windows-хосте:
 
 ```bash
-npm run accept:word -- reports/my_report/build/my_report.docx --style-preset samara-template-2022
+npm run accept:word -- reports/my_report/build/my_report.docx
 ```
 
 Команда `accept-word` вызывает Windows PowerShell и Word COM напрямую. Она не требует Windows Python и `pywin32`, не
@@ -52,7 +52,7 @@ npm run accept:word -- reports/my_report/build/my_report.docx --style-preset sam
 | Preflight исходных Markdown-файлов                            | Да                | Да         | Нет           |
 | Сборка `.docx` из Markdown, формул, таблиц, рисунков и BibTeX | Да                | Да         | Нет           |
 | Проверка структуры DOCX через OpenXML                         | Да                | Да         | Нет           |
-| Имена стилей Самарского шаблона через `stylePreset`           | Да                | Да         | Проверяет     |
+| Родные имена стилей из DOTM Самарского университета           | По умолчанию      | Да         | Проверяет     |
 | Обновление полей Word и оглавления                            | Нет               | Да         | Да            |
 | Авторитетная пагинация и PDF                                  | Нет               | Да         | Да            |
 
@@ -145,7 +145,6 @@ bibliography: 'references.bib'
 {
 	"profile": "coursework",
 	"renderer": "portable",
-	"stylePreset": "samara-template-2022",
 	"sourceDir": ".",
 	"outputDocx": "build/my_report.docx",
 	"document": {
@@ -195,8 +194,7 @@ Word/PDF включается явно:
 npm run accept:word -- reports/my_report/build/my_report.docx \
   --accepted-docx reports/my_report/build/my_report.accepted.docx \
   --pdf reports/my_report/build/my_report.accepted.pdf \
-  --manifest reports/my_report/build/my_report.acceptance.json \
-  --style-preset samara-template-2022
+  --manifest reports/my_report/build/my_report.acceptance.json
 ```
 
 На WSL команда использует `powershell.exe` Windows-хоста и конвертирует пути через `wslpath`. На native Windows она
@@ -210,19 +208,27 @@ format-repair из `scripts/sto_post_build/`. Это только финальн
 Пути в `report.config.json` должны быть относительными к папке отчета. Локальные абсолютные пути, личные каталоги,
 закрытые ссылки и идентификаторы пользователей не должны попадать в README, инвентарь источников или публичные fixtures.
 
-## Стили Самарского Шаблона
+## Стили Самарского шаблона
 
-По умолчанию генератор сохраняет стабильные внутренние style ID: `Normal`, `StoHeading1`, `FigureCaption`, `TableText` и
-другие. Если преподавателю важно видеть названия стилей из шаблона Самарского университета, добавьте:
+Генератор по умолчанию использует отображаемые имена из эталонного DOTM
+`SHablon_oformlenija_VKR_2022_5_6.dotm`. Внутренние style ID (`Normal`, `StoHeading1`, `FigureCaption`, `TableText` и
+другие) остаются стабильными, а в Word видны родные имена шаблона: `+Абзац с отступом 1-ой строки`,
+`+ЗАГОЛОВОК по центру`, `+ЗаголРеферСодерж`, `+Заголовок 1 уровня`, `+№ - Название рисунка`,
+`+№ - Название таблицы`, `+Текст в таблице`, `+Тит_Абзац по центру` и `+Оглавление 1..4`.
+
+Для уровней 5–6 используются реальные имена DOTM `heading 5` и `heading 6`: пользовательских стилей
+`+Заголовок 5 уровня` и `+Заголовок 6 уровня` в эталонном шаблоне нет.
+
+Старые нейтральные отображаемые имена доступны только как явный режим совместимости:
 
 ```json
 {
-	"stylePreset": "samara-template-2022"
+	"stylePreset": "default"
 }
 ```
 
-Preset меняет только отображаемые имена сопоставленных стилей. Тесты проверяют, что style ID и XML форматирования не
-меняются.
+Переключатель меняет только отображаемые имена сопоставленных стилей. Тесты проверяют, что style ID и XML
+форматирования не меняются.
 
 ## Проверки
 
@@ -230,8 +236,9 @@ Preset меняет только отображаемые имена сопос�
 npm run doctor
 npm run check:source -- example
 npm run audit:report -- example --renderer portable
-npm run accept:word -- example/build/example.docx --style-preset samara-template-2022
+npm run accept:word -- example/build/example.docx
 npm run check:pack
+npm run security:audit
 npm run quality
 ```
 
@@ -254,15 +261,15 @@ npm run audit:report -- example --renderer portable
 
 ## Частые проблемы
 
-| Симптом                             | Что проверить                                                                                                                                                                                   |
-| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `audit` пропускает post-build       | Проверьте `--renderer`: portable сознательно не запускает Word.                                                                                                                                 |
-| Нужен PDF с точной пагинацией       | Для полной post-build обработки запустите `npm run audit:report -- reports/<slug> --renderer word` в Windows; для уже собранного DOCX запустите `npm run accept:word -- <docx>` из WSL/Windows. |
-| Preflight отклоняет список          | Используйте `sto_list` или `sto_enum` в исходниках отчета.                                                                                                                                      |
-| Preflight отклоняет `\begin{...}`   | Проверьте список окружений в `src/shared/config/sto-rules.json`.                                                                                                                                |
-| Не найден рисунок                   | Укажите путь относительно папки отчета, например `images/chart.png`.                                                                                                                            |
-| Цитата осталась как `[@key]`        | Добавьте запись в `references.bib` и проверьте поле `bibliography`.                                                                                                                             |
-| Названия стилей не похожи на шаблон | Добавьте `stylePreset: "samara-template-2022"` в `report.config.json`.                                                                                                                          |
+| Симптом                                  | Что проверить                                                                                                                                                                                   |
+| ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `audit` пропускает post-build            | Проверьте `--renderer`: portable сознательно не запускает Word.                                                                                                                                 |
+| Нужен PDF с точной пагинацией            | Для полной post-build обработки запустите `npm run audit:report -- reports/<slug> --renderer word` в Windows; для уже собранного DOCX запустите `npm run accept:word -- <docx>` из WSL/Windows. |
+| Preflight отклоняет список               | Используйте `sto_list` или `sto_enum` в исходниках отчета.                                                                                                                                      |
+| Preflight отклоняет `\begin{...}`        | Проверьте список окружений в `src/shared/config/sto-rules.json`.                                                                                                                                |
+| Не найден рисунок                        | Укажите путь относительно папки отчета, например `images/chart.png`.                                                                                                                            |
+| Цитата осталась как `[@key]`             | Добавьте запись в `references.bib` и проверьте поле `bibliography`.                                                                                                                             |
+| Нужны старые нейтральные названия стилей | Укажите `stylePreset: "default"`; штатный режим уже использует имена из DOTM.                                                                                                                   |
 
 ## Документация
 

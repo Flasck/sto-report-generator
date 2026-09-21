@@ -116,7 +116,7 @@ function optionStylePreset(args: ParsedArgs): StoStylePreset | undefined {
 	}
 	if (!isStoStylePreset(value)) {
 		throw new Error(
-			'Supported style presets: default, samara-template-2022.',
+			'Supported style presets: samara-template-2022, default.',
 		);
 	}
 	return value;
@@ -131,7 +131,7 @@ Usage:
   npx tsx src/index.ts check <report_dir> [--strict]
   npx tsx src/index.ts generate <report_dir> [--output build/report.docx] [--renderer portable|word] [--post-build] [--validate]
   npx tsx src/index.ts audit <report_dir> [--output build/report.docx] [--renderer portable|word]
-  npx tsx src/index.ts accept-word <input.docx> [--accepted-docx accepted.docx] [--pdf accepted.pdf] [--manifest acceptance.json] [--style-preset default|samara-template-2022]
+  npx tsx src/index.ts accept-word <input.docx> [--accepted-docx accepted.docx] [--pdf accepted.pdf] [--manifest acceptance.json] [--style-preset samara-template-2022|default]
   npx tsx src/index.ts validate-docx <report.docx> [unpack_dir]
   npx tsx src/index.ts doctor
 

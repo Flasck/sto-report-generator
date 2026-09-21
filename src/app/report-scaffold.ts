@@ -231,6 +231,7 @@ function reportConfigTemplate(slug: string, profile: ReportProfile): string {
 		{
 			profile,
 			renderer: 'portable',
+			stylePreset: 'samara-template-2022',
 			sourceDir: '.',
 			outputDocx: `build/${slug}.docx`,
 			document: documentConfig,

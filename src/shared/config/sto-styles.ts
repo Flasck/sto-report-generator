@@ -26,9 +26,10 @@ export const HEADING_NUMBERING_REFERENCE = 'heading-numbering';
 export const STRUCTURAL_HEADING_STYLE_ID = 'StructuralHeading';
 export const STRUCTURAL_HEADING_NO_TOC_STYLE_ID = 'StructuralHeadingNoTOC';
 export const STO_STYLE_PRESET_NAMES = [
-	'default',
 	'samara-template-2022',
+	'default',
 ] as const;
+export const DEFAULT_STO_STYLE_PRESET = 'samara-template-2022';
 
 export type StoStylePreset = (typeof STO_STYLE_PRESET_NAMES)[number];
 
@@ -36,7 +37,7 @@ type ParagraphStyle = NonNullable<IStylesOptions['paragraphStyles']>[number];
 
 const SAMARA_TEMPLATE_2022_STYLE_NAMES: Record<string, string> = {
 	Normal: '+Абзац с отступом 1-ой строки',
-	[STRUCTURAL_HEADING_STYLE_ID]: '+ЗаголРеферСодерж',
+	[STRUCTURAL_HEADING_STYLE_ID]: '+ЗАГОЛОВОК по центру',
 	[STRUCTURAL_HEADING_NO_TOC_STYLE_ID]: '+ЗаголРеферСодерж',
 	FigureCaption: '+№ - Название рисунка',
 	TableCaption: '+№ - Название таблицы',
@@ -46,19 +47,16 @@ const SAMARA_TEMPLATE_2022_STYLE_NAMES: Record<string, string> = {
 	TOC2: '+Оглавление 2',
 	TOC3: '+Оглавление 3',
 	TOC4: '+Оглавление 4',
+	StoHeading1: '+Заголовок 1 уровня',
+	StoHeading2: '+Заголовок 2 уровня',
+	StoHeading3: '+Заголовок 3 уровня',
+	StoHeading4: '+Заголовок 4 уровня',
+	StoHeading5: 'heading 5',
+	StoHeading6: 'heading 6',
 };
 
 function getSamaraTemplate2022StyleNames(): Record<string, string> {
-	const headingStyleNames = Object.fromEntries(
-		NUMBERED_HEADING_STYLE_IDS.map((styleId, index) => [
-			styleId,
-			`+Заголовок ${index + 1} уровня`,
-		]),
-	);
-	return {
-		...SAMARA_TEMPLATE_2022_STYLE_NAMES,
-		...headingStyleNames,
-	};
+	return { ...SAMARA_TEMPLATE_2022_STYLE_NAMES };
 }
 
 export function isStoStylePreset(value: unknown): value is StoStylePreset {
@@ -288,7 +286,7 @@ export const STO_STYLES: IStylesOptions = {
 };
 
 export function getStoStyles(
-	stylePreset: StoStylePreset = 'default',
+	stylePreset: StoStylePreset = DEFAULT_STO_STYLE_PRESET,
 ): IStylesOptions {
 	if (stylePreset === 'default') {
 		return STO_STYLES;

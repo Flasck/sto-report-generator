@@ -76,6 +76,21 @@ function Test-StyleExists($Document, $DisplayName) {
             return $true
         }
     }
+
+    # Word localizes built-in heading names in the COM model even when OOXML
+    # stores the canonical DOTM name (for example, "heading 5"). Resolve that
+    # case through WdBuiltinStyle: Heading 1 is -2, Heading 9 is -10.
+    if ($DisplayName -match '^heading ([1-9])$') {
+        $headingLevel = [int]$Matches[1]
+        $builtInStyleId = -($headingLevel + 1)
+        try {
+            $builtInStyle = $Document.Styles.Item($builtInStyleId)
+            return $builtInStyle -ne $null -and [bool]$builtInStyle.BuiltIn
+        } catch {
+            return $false
+        }
+    }
+
     return $false
 }
 

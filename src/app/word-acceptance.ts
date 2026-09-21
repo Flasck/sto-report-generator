@@ -4,6 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 
 import {
+	DEFAULT_STO_STYLE_PRESET,
 	getStoStylePresetDisplayNames,
 	isStoStylePreset,
 	StoStylePreset,
@@ -149,10 +150,10 @@ export function createWordAcceptancePlan(
 		options.manifest,
 		'.acceptance.json',
 	);
-	const stylePreset = options.stylePreset ?? 'default';
+	const stylePreset = options.stylePreset ?? DEFAULT_STO_STYLE_PRESET;
 	if (!isStoStylePreset(stylePreset)) {
 		throw new Error(
-			'Supported style presets for Word acceptance: default, samara-template-2022.',
+			'Supported style presets for Word acceptance: samara-template-2022, default.',
 		);
 	}
 	assertDifferentPaths(inputDocx, acceptedDocx);

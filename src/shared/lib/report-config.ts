@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import {
+	DEFAULT_STO_STYLE_PRESET,
 	isStoStylePreset,
 	STO_RULES,
 	STO_STYLE_PRESET_NAMES,
@@ -600,7 +601,7 @@ export function resolveReportConfig(
 		renderer,
 		stylePreset: isStoStylePreset(raw.stylePreset)
 			? raw.stylePreset
-			: 'default',
+			: DEFAULT_STO_STYLE_PRESET,
 		sourceDir: asString(raw.sourceDir) ?? '.',
 		outputDocx:
 			options.outputPath ??

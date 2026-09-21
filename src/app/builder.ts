@@ -16,6 +16,7 @@ import {
 	parseMarkdownToDocx,
 } from '@/features/markdown-parser';
 import {
+	DEFAULT_STO_STYLE_PRESET,
 	getStoStyles,
 	isStoStylePreset,
 	MARGINS,
@@ -39,7 +40,7 @@ function getMetadataStylePreset(
 		return metadata.stylePreset;
 	}
 	throw new Error(
-		`Unsupported stylePreset "${String(metadata.stylePreset)}". Supported presets: default, samara-template-2022.`,
+		`Unsupported stylePreset "${String(metadata.stylePreset)}". Supported presets: samara-template-2022, default.`,
 	);
 }
 
@@ -107,7 +108,9 @@ export async function buildReport(
 
 	const reportMetadata = finalMetadata as unknown as ReportMetadata;
 	const stylePreset =
-		options.stylePreset ?? getMetadataStylePreset(finalMetadata);
+		options.stylePreset ??
+		getMetadataStylePreset(finalMetadata) ??
+		DEFAULT_STO_STYLE_PRESET;
 	const titlePage = createTitlePage(reportMetadata);
 	const documentBody = await parseMarkdownToDocx(
 		finalContent,

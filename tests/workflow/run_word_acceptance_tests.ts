@@ -99,8 +99,14 @@ function main(): void {
 		},
 	);
 	assert.equal(defaultPlan.hostKind, 'windows');
-	assert.equal(defaultPlan.request.stylePreset, 'default');
-	assert.deepEqual(defaultPlan.request.expectedStyles, []);
+	assert.equal(defaultPlan.request.stylePreset, 'samara-template-2022');
+	assert.deepEqual(
+		defaultPlan.request.expectedStyles,
+		Object.entries(expectedStyleMap).map(([styleId, displayName]) => ({
+			styleId,
+			displayName,
+		})),
+	);
 	assert.equal(
 		defaultPlan.request.acceptedDocx,
 		path.resolve('accepted/final.docx'),
