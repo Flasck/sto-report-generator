@@ -29,7 +29,17 @@ function Write-Utf8Json($Path, $Value) {
 }
 
 function Get-Sha256($Path) {
-    return (Get-FileHash -Algorithm SHA256 -LiteralPath $Path).Hash.ToLowerInvariant()
+    if (Get-Command Get-FileHash -ErrorAction SilentlyContinue) {
+        return (Get-FileHash -Algorithm SHA256 -LiteralPath $Path).Hash.ToLowerInvariant()
+    }
+    $stream = [System.IO.File]::OpenRead($Path)
+    try {
+        $sha = [System.Security.Cryptography.SHA256]::Create()
+        $hashBytes = $sha.ComputeHash($stream)
+        return (-join ($hashBytes | ForEach-Object { $_.ToString("x2") }))
+    } finally {
+        $stream.Close()
+    }
 }
 
 function Ensure-ParentDirectory($Path) {

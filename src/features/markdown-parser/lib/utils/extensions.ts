@@ -39,7 +39,13 @@ export const stoExtension = {
 				);
 			}
 
-			const content = match[2];
+			let content = match[2];
+			if (envName === 'sto_list' || envName === 'sto_enum') {
+				content = content.replace(
+					/(\r?\n)([ \t]*(?:[А-Яа-яЁё]|\d+)\)\s+)/gu,
+					'$1\n$2',
+				);
+			}
 			const blockTokens: Token[] = [];
 			this.lexer.blockTokens(content, blockTokens);
 			return {

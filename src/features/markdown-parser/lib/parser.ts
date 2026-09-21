@@ -28,6 +28,29 @@ import { mathExtension, stoExtension } from './utils/extensions';
 
 marked.use({ extensions: [stoExtension, mathExtension] });
 
+function sanitizeHeadingTokens(tokens?: Token[]): Token[] {
+	if (!tokens || tokens.length === 0) {
+		return [];
+	}
+	const first = tokens[0];
+	if (first.type === 'text') {
+		const textToken = first as Tokens.Text;
+		const cleanedText = textToken.text.replace(/^\d+(?:\.\d+)*\.?\s+/, '');
+		const cleanedRaw = textToken.raw.replace(/^\d+(?:\.\d+)*\.?\s+/, '');
+		if (cleanedText !== textToken.text) {
+			return [
+				{
+					...textToken,
+					text: cleanedText,
+					raw: cleanedRaw,
+				},
+				...tokens.slice(1),
+			];
+		}
+	}
+	return tokens;
+}
+
 interface MarkdownParserOptions {
 	sourceDir?: string;
 }
@@ -106,7 +129,7 @@ class MarkdownParser {
 								),
 							},
 							children: await parseInline(
-								headingToken.tokens,
+								sanitizeHeadingTokens(headingToken.tokens),
 								this.context,
 								this.getCitationNum,
 								this.replaceRefs,

@@ -38,6 +38,30 @@ function isReferatKeywordsParagraph(text: string): boolean {
 	);
 }
 
+function cleanCaptionTokens(tokens?: Token[]): Token[] {
+	if (!tokens || tokens.length === 0) {
+		return [];
+	}
+	const result = [...tokens];
+	const lastIndex = result.length - 1;
+	const last = result[lastIndex];
+	if (last.type === 'text') {
+		const textToken = last as MarkedTokens.Text;
+		const anchorPattern =
+			/\s*(?:\(@(?:fig|tab):[a-zA-Z0-9_-]+\)|@(fig|tab):[a-zA-Z0-9_-]+)\s*$/;
+		const cleanedText = textToken.text.replace(anchorPattern, '');
+		const cleanedRaw = textToken.raw.replace(anchorPattern, '');
+		if (cleanedText !== textToken.text) {
+			result[lastIndex] = {
+				...textToken,
+				text: cleanedText,
+				raw: cleanedRaw,
+			};
+		}
+	}
+	return result;
+}
+
 /**
  * Handles paragraph tokens and converts them to Docx Paragraphs or Tables (for math blocks).
  */
@@ -87,6 +111,26 @@ export async function handleParagraph(
 
 	if (currentContext.isStoList) {
 		const itemTokens = token.tokens || [];
+		const isParenthesizedMarker =
+			itemTokens.length > 0 &&
+			itemTokens[0].type === 'text' &&
+			/^(?:[А-Яа-яЁё]|\d+)\)\s+/.test(
+				(itemTokens[0] as MarkedTokens.Text).text,
+			);
+
+		if (isParenthesizedMarker) {
+			return [
+				new Paragraph({
+					style: 'Normal',
+					indent: {
+						left: 0,
+						firstLine: STO_RULES.typography.firstLineIndentDxa,
+					},
+					children: await parseInline(itemTokens),
+				}),
+			];
+		}
+
 		if (itemTokens.length > 0 && itemTokens[0].type === 'text') {
 			itemTokens[0].raw = itemTokens[0].raw.replace(
 				/^(?:-|\*|\d+\.)\s+/,
@@ -125,7 +169,7 @@ export async function handleParagraph(
 		return [
 			new Paragraph({
 				style: 'FigureCaption',
-				children: await parseInline(token.tokens || []),
+				children: await parseInline(cleanCaptionTokens(token.tokens)),
 			}),
 		];
 	}
@@ -134,7 +178,7 @@ export async function handleParagraph(
 		return [
 			new Paragraph({
 				style: 'TableCaption',
-				children: await parseInline(token.tokens || []),
+				children: await parseInline(cleanCaptionTokens(token.tokens)),
 			}),
 		];
 	}
