@@ -72,6 +72,18 @@ interface BibEntrySource {
 	line: number;
 }
 
+const ONLINE_ENTRY_TYPES = new Set(['misc', 'online']);
+const PUBLICATION_DATE_DETAIL_TAGS = [
+	'date',
+	'month',
+	'day',
+	'published',
+	'publicationdate',
+	'updated',
+	'lastmodified',
+	'last-modified',
+] as const;
+
 function readBibEntrySources(bibPath: string): BibEntrySource[] {
 	const content = fs.readFileSync(bibPath, 'utf8');
 	return [
@@ -138,6 +150,21 @@ function isFutureDate(value: string): boolean {
 		Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()),
 	);
 	return parsed.getTime() > today.getTime();
+}
+
+function yearFromIsoDate(value: string): string | undefined {
+	return parseIsoDate(value)?.getUTCFullYear().toString();
+}
+
+function isOnlineEntry(entry: BibEntrySource): boolean {
+	return (
+		ONLINE_ENTRY_TYPES.has(entry.entryType) ||
+		hasBibTag(entry.raw, 'website')
+	);
+}
+
+function hasPublicationDateDetail(rawEntry: string): boolean {
+	return hasAnyBibTag(rawEntry, PUBLICATION_DATE_DETAIL_TAGS);
 }
 
 function isMostlyLatinText(value: string): boolean {
@@ -228,6 +255,24 @@ function validateUrlAccessDates(
 				issue(
 					'bibliography-urldate-in-future',
 					`cited electronic resource @${entry.key} has future urldate "${urldate}".`,
+					path.basename(bibPath),
+					entry.line,
+					'warning',
+				),
+			);
+		}
+
+		const publicationYear = getNormalizedTagValue(entry.raw, 'year');
+		if (
+			publicationYear &&
+			publicationYear === yearFromIsoDate(urldate) &&
+			isOnlineEntry(entry) &&
+			!hasPublicationDateDetail(entry.raw)
+		) {
+			issues.push(
+				issue(
+					'bibliography-url-year-matches-urldate',
+					`cited electronic resource @${entry.key} uses year "${publicationYear}", matching urldate. Verify that year is the page publication/update year, not copied from the access date.`,
 					path.basename(bibPath),
 					entry.line,
 					'warning',
