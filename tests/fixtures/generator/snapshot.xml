@@ -990,9 +990,9 @@
 </w:tblCellMar>
 </w:tblPr>
 <w:tblGrid>
-<w:gridCol w:w="3677"/>
-<w:gridCol w:w="2839"/>
-<w:gridCol w:w="2839"/>
+<w:gridCol w:w="3667"/>
+<w:gridCol w:w="2844"/>
+<w:gridCol w:w="2844"/>
 </w:tblGrid>
 <w:tr>
 <w:trPr>
@@ -1001,7 +1001,7 @@
 </w:trPr>
 <w:tc>
 <w:tcPr>
-<w:tcW w:type="dxa" w:w="3677"/>
+<w:tcW w:type="dxa" w:w="3667"/>
 <w:vAlign w:val="center"/>
 </w:tcPr>
 <w:p>
@@ -1020,7 +1020,7 @@
 </w:tc>
 <w:tc>
 <w:tcPr>
-<w:tcW w:type="dxa" w:w="2839"/>
+<w:tcW w:type="dxa" w:w="2844"/>
 <w:vAlign w:val="center"/>
 </w:tcPr>
 <w:p>
@@ -1039,7 +1039,7 @@
 </w:tc>
 <w:tc>
 <w:tcPr>
-<w:tcW w:type="dxa" w:w="2839"/>
+<w:tcW w:type="dxa" w:w="2844"/>
 <w:vAlign w:val="center"/>
 </w:tcPr>
 <w:p>
@@ -1063,7 +1063,7 @@
 </w:trPr>
 <w:tc>
 <w:tcPr>
-<w:tcW w:type="dxa" w:w="3677"/>
+<w:tcW w:type="dxa" w:w="3667"/>
 <w:vAlign w:val="center"/>
 </w:tcPr>
 <w:p>
@@ -1078,7 +1078,7 @@
 </w:tc>
 <w:tc>
 <w:tcPr>
-<w:tcW w:type="dxa" w:w="2839"/>
+<w:tcW w:type="dxa" w:w="2844"/>
 <w:vAlign w:val="center"/>
 </w:tcPr>
 <w:p>
@@ -1093,7 +1093,7 @@
 </w:tc>
 <w:tc>
 <w:tcPr>
-<w:tcW w:type="dxa" w:w="2839"/>
+<w:tcW w:type="dxa" w:w="2844"/>
 <w:vAlign w:val="center"/>
 </w:tcPr>
 <w:p>
@@ -1113,7 +1113,7 @@
 </w:trPr>
 <w:tc>
 <w:tcPr>
-<w:tcW w:type="dxa" w:w="3677"/>
+<w:tcW w:type="dxa" w:w="3667"/>
 <w:vAlign w:val="center"/>
 </w:tcPr>
 <w:p>
@@ -1128,7 +1128,7 @@
 </w:tc>
 <w:tc>
 <w:tcPr>
-<w:tcW w:type="dxa" w:w="2839"/>
+<w:tcW w:type="dxa" w:w="2844"/>
 <w:vAlign w:val="center"/>
 </w:tcPr>
 <w:p>
@@ -1143,7 +1143,7 @@
 </w:tc>
 <w:tc>
 <w:tcPr>
-<w:tcW w:type="dxa" w:w="2839"/>
+<w:tcW w:type="dxa" w:w="2844"/>
 <w:vAlign w:val="center"/>
 </w:tcPr>
 <w:p>
@@ -1163,7 +1163,7 @@
 </w:trPr>
 <w:tc>
 <w:tcPr>
-<w:tcW w:type="dxa" w:w="3677"/>
+<w:tcW w:type="dxa" w:w="3667"/>
 <w:vAlign w:val="center"/>
 </w:tcPr>
 <w:p>
@@ -1178,7 +1178,7 @@
 </w:tc>
 <w:tc>
 <w:tcPr>
-<w:tcW w:type="dxa" w:w="2839"/>
+<w:tcW w:type="dxa" w:w="2844"/>
 <w:vAlign w:val="center"/>
 </w:tcPr>
 <w:p>
@@ -1193,7 +1193,7 @@
 </w:tc>
 <w:tc>
 <w:tcPr>
-<w:tcW w:type="dxa" w:w="2839"/>
+<w:tcW w:type="dxa" w:w="2844"/>
 <w:vAlign w:val="center"/>
 </w:tcPr>
 <w:p>

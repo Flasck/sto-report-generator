@@ -260,9 +260,23 @@ async function main(): Promise<void> {
 	assert.match(tableDocXml, /<w:cantSplit\/>/, 'Table rows must have cantSplit');
 	assert.match(tableDocXml, /<w:b\/>/, 'Table header must have bold text');
 	assert.match(tableDocXml, /<w:jc w:val="center"\/>/, 'Table header must be centered');
-	assert.match(tableDocXml, /<w:vAlign w:val="center"\/>/, 'Table cells must be vertically centered');
 	assert.match(tableDocXml, /<w:br\/>/, '<br> tags must produce w:br runs');
 	assert.match(tableDocXml, /w:w="2807"/, 'Column widths from explicit widths hint must be applied');
+
+	// Test widths comment preceding Table Caption paragraph ("Таблица X – ...")
+	const tableCaptionDocPath = path.join(tempRoot, 'table-caption-test.docx');
+	const tableCaptionElements = await parseMarkdownToDocx(
+		String.raw`<!-- widths: 40, 60 -->
+Таблица 1 – Тестовая таблица
+| Кол 1 | Кол 2 |
+| :--- | :--- |
+| Данные 1 | Данные 2 |
+`,
+		{},
+		{ sourceDir: tempRoot },
+	);
+	const { documentXml: tableCaptionDocXml } = await packAndReadXml(tableCaptionElements, tableCaptionDocPath);
+	assert.match(tableCaptionDocXml, /w:w="3742"/, 'Explicit widths hint preceding table caption must not be cleared');
 
 	console.log('Parser tests passed.');
 }

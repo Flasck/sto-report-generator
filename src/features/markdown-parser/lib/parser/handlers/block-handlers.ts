@@ -320,11 +320,12 @@ export function computeTableColumnWidths(
 			}
 		}
 		const avgLen = totalLen / cellTexts.length;
-		colMetrics.push({ c, maxWordLen, avgLen, totalLen });
+		const effectiveMaxWordLen = Math.min(maxWordLen, 20);
+		colMetrics.push({ c, maxWordLen: effectiveMaxWordLen, avgLen, totalLen });
 	}
 
 	const minWidths = colMetrics.map(m =>
-		Math.max(900, m.maxWordLen * 105 + 320),
+		Math.max(900, m.maxWordLen * 110 + 350),
 	);
 	const weights = colMetrics.map(m =>
 		Math.pow(Math.max(m.avgLen, 8), 0.55),
@@ -339,10 +340,12 @@ export function computeTableColumnWidths(
 			Math.round(minW + (weights[i] / sumWeights) * remaining),
 		);
 	} else {
-		widths = weights.map(w =>
-			Math.round((w / sumWeights) * TOTAL_TABLE_WIDTH_DXA),
+		// When sumMin exceeds total width, scale minWidths proportionally
+		// rather than discarding them, so narrow columns don't collapse.
+		widths = minWidths.map(minW =>
+			Math.round((minW / sumMin) * TOTAL_TABLE_WIDTH_DXA),
 		);
-		widths = widths.map(w => Math.max(800, w));
+		widths = widths.map(w => Math.max(900, w));
 	}
 
 	const diff = TOTAL_TABLE_WIDTH_DXA - widths.reduce((a, b) => a + b, 0);

@@ -71,8 +71,16 @@ class MarkdownParser {
 				structuralHeading: activeStructuralHeading,
 			};
 			if (token.type !== 'space' && token.type !== 'html') {
-				// Clear pending widths if intervening content appears before table
-				if (token.type !== 'table') {
+				// Clear pending widths if intervening content appears before table,
+				// unless this content is a table caption paragraph ("Таблица X...")
+				const isTableCaption =
+					token.type === 'paragraph' &&
+					/^Таблица\s+\d+/i.test(
+						((token as Tokens.Paragraph).text || '')
+							.replace(/[*_#]/g, '')
+							.trim(),
+					);
+				if (token.type !== 'table' && !isTableCaption) {
 					pendingTableWidths = undefined;
 				}
 			}
