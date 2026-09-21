@@ -111,19 +111,21 @@ export async function handleParagraph(
 
 	if (currentContext.isStoList) {
 		const itemTokens = token.tokens || [];
-		const isParenthesizedMarker =
-			itemTokens.length > 0 &&
-			itemTokens[0].type === 'text' &&
-			/^(?:[А-Яа-яЁё]|\d+)\)\s+/.test(
-				(itemTokens[0] as MarkedTokens.Text).text,
-			);
+		const parenthesizedItem = token as MarkedTokens.Paragraph & {
+			stoParenthesizedListItem?: boolean;
+			stoParenthesizedIndentLevel?: number;
+		};
 
-		if (isParenthesizedMarker) {
+		if (parenthesizedItem.stoParenthesizedListItem) {
+			const indentLevel =
+				parenthesizedItem.stoParenthesizedIndentLevel ?? 0;
 			return [
 				new Paragraph({
 					style: 'Normal',
 					indent: {
-						left: 0,
+						left:
+							indentLevel *
+							STO_RULES.typography.nestedListIndentStepDxa,
 						firstLine: STO_RULES.typography.firstLineIndentDxa,
 					},
 					children: await parseInline(itemTokens),

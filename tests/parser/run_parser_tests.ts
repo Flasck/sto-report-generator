@@ -244,7 +244,7 @@ async function main(): Promise<void> {
 	);
 
 	const headingElements = await parseMarkdownToDocx(
-		'# 1 Основной раздел\n\n## 1.2 Подраздел',
+		'# 1 Основной раздел\n\n## 1.1 Подраздел\n\n# 2026 год\n\n# 12 причин',
 		{},
 		{ sourceDir: tempRoot },
 	);
@@ -257,6 +257,16 @@ async function main(): Promise<void> {
 	assert.ok(
 		!getWordText(headingParagraph).startsWith('1 Основной раздел'),
 		'Heading text must have leading section number stripped.',
+	);
+	assert.equal(
+		getWordText(paragraphContaining(headingXml, '2026 год')),
+		'2026 год',
+		'A year at the start of a heading is content, not a section number.',
+	);
+	assert.equal(
+		getWordText(paragraphContaining(headingXml, '12 причин')),
+		'12 причин',
+		'A quantity at the start of a heading must not be discarded.',
 	);
 
 	const captionElements = await parseMarkdownToDocx(
@@ -284,11 +294,13 @@ async function main(): Promise<void> {
 
 	const russianListElements = await parseMarkdownToDocx(
 		String.raw`\begin{sto_list}
-а) первый пункт задачи;
-б) второй пункт задачи.
+а) *первый* пункт задачи [@used];
+  б) вложенный пункт задачи;
+    в) глубоко вложенный пункт задачи;
+1) третий пункт задачи.
 \end{sto_list}
 `,
-		{},
+		{ bibliography: bibPath },
 		{ sourceDir: tempRoot },
 	);
 	const { documentXml: russianListXml } = await packAndReadXml(
@@ -296,11 +308,32 @@ async function main(): Promise<void> {
 		path.join(tempRoot, 'russian-list-test.docx'),
 	);
 	const russianA = paragraphContaining(russianListXml, 'первый пункт задачи');
-	const russianB = paragraphContaining(russianListXml, 'второй пункт задачи');
+	const russianB = paragraphContaining(
+		russianListXml,
+		'вложенный пункт задачи',
+	);
+	const russianC = paragraphContaining(
+		russianListXml,
+		'глубоко вложенный пункт задачи',
+	);
+	const numericItem = paragraphContaining(
+		russianListXml,
+		'третий пункт задачи',
+	);
 	assert.ok(getWordText(russianA).includes('а) первый пункт задачи'));
 	assert.ok(!getWordText(russianA).includes('- а)'));
-	assert.ok(getWordText(russianB).includes('б) второй пункт задачи'));
+	assert.ok(getWordText(russianA).includes('[1]'));
+	assert.match(russianA, /<w:i\/>/);
+	assert.ok(getWordText(russianB).includes('б) вложенный пункт задачи'));
 	assert.ok(!getWordText(russianB).includes('- б)'));
+	assert.match(russianB, /<w:ind\b(?=[^>]*w:left="709")/);
+	assert.ok(
+		getWordText(russianC).includes('в) глубоко вложенный пункт задачи'),
+	);
+	assert.match(russianC, /<w:ind\b(?=[^>]*w:left="1418")/);
+	assert.ok(getWordText(numericItem).includes('1) третий пункт задачи'));
+	assert.ok(!getWordText(numericItem).includes('1. третий пункт задачи'));
+	assert.doesNotMatch(russianListXml, /Courier New/);
 	assert.notEqual(
 		russianA,
 		russianB,

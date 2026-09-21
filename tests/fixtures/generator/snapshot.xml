@@ -756,10 +756,6 @@
 <w:p>
 <w:pPr>
 <w:pStyle w:val="StoHeading1"/>
-<w:numPr>
-<w:ilvl w:val="0"/>
-<w:numId w:val="3"/>
-</w:numPr>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Основная часть</w:t>
@@ -768,10 +764,6 @@
 <w:p>
 <w:pPr>
 <w:pStyle w:val="StoHeading2"/>
-<w:numPr>
-<w:ilvl w:val="1"/>
-<w:numId w:val="3"/>
-</w:numPr>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Математические формулы</w:t>
@@ -945,10 +937,6 @@
 <w:p>
 <w:pPr>
 <w:pStyle w:val="StoHeading2"/>
-<w:numPr>
-<w:ilvl w:val="1"/>
-<w:numId w:val="3"/>
-</w:numPr>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Таблицы и списки</w:t>
@@ -1132,7 +1120,7 @@
 <w:pStyle w:val="Normal"/>
 <w:numPr>
 <w:ilvl w:val="0"/>
-<w:numId w:val="4"/>
+<w:numId w:val="3"/>
 </w:numPr>
 </w:pPr>
 <w:r>
@@ -1144,7 +1132,7 @@
 <w:pStyle w:val="Normal"/>
 <w:numPr>
 <w:ilvl w:val="0"/>
-<w:numId w:val="4"/>
+<w:numId w:val="3"/>
 </w:numPr>
 </w:pPr>
 <w:r>
@@ -1156,7 +1144,7 @@
 <w:pStyle w:val="Normal"/>
 <w:numPr>
 <w:ilvl w:val="0"/>
-<w:numId w:val="4"/>
+<w:numId w:val="3"/>
 </w:numPr>
 </w:pPr>
 <w:r>
@@ -1166,10 +1154,6 @@
 <w:p>
 <w:pPr>
 <w:pStyle w:val="StoHeading2"/>
-<w:numPr>
-<w:ilvl w:val="1"/>
-<w:numId w:val="3"/>
-</w:numPr>
 </w:pPr>
 <w:r>
 <w:t xml:space="preserve">Изображения</w:t>
@@ -1273,7 +1257,7 @@
 <w:pStyle w:val="Normal"/>
 <w:numPr>
 <w:ilvl w:val="0"/>
-<w:numId w:val="5"/>
+<w:numId w:val="4"/>
 </w:numPr>
 <w:tabs>
 <w:tab w:val="left" w:pos="1134"/>
