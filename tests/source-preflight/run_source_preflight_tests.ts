@@ -1123,6 +1123,48 @@ bibliography: "references.bib"
 );
 
 expectWarning(
+	'bibliography-url-year-matches-urldate',
+	validFiles({
+		'00_metadata.md': `---
+bibliography: "references.bib"
+---
+`,
+		'03_intro.md': `Текст с документацией [@docsSameYear].
+`,
+		'references.bib': `@misc{docsSameYear,
+   title = {Documentation},
+   website = {Example : [сайт]},
+   year = {2026},
+   url = {https://example.com/docs},
+   urldate = {2026-06-26}
+}
+`,
+	}),
+	'bibliography-url-year-matches-urldate',
+);
+
+expectNoIssue(
+	'bibliography-publication-year-differs-from-urldate',
+	validFiles({
+		'00_metadata.md': `---
+bibliography: "references.bib"
+---
+`,
+		'03_intro.md': `Текст с документацией [@docsOlderYear].
+`,
+		'references.bib': `@misc{docsOlderYear,
+   title = {Documentation},
+   website = {Example : [сайт]},
+   year = {2025},
+   url = {https://example.com/docs},
+   urldate = {2026-06-26}
+}
+`,
+	}),
+	'bibliography-url-year-matches-urldate',
+);
+
+expectWarning(
 	'bibliography-doi-url',
 	validFiles({
 		'00_metadata.md': `---
