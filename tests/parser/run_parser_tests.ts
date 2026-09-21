@@ -243,6 +243,27 @@ async function main(): Promise<void> {
 		/Citation source not found/,
 	);
 
+	// Test Table formatting: cantSplit, tblHeader, column widths, centered bold headers, <br>
+	const tableDocPath = path.join(tempRoot, 'table-test.docx');
+	const tableElements = await parseMarkdownToDocx(
+		String.raw`<!-- widths: 30, 70 -->
+| Заголовок 1 | Заголовок 2 <br> вторая строка |
+| :---: | ---: |
+| Ячейка 1 | Текст <br> с переносом |
+`,
+		{},
+		{ sourceDir: tempRoot },
+	);
+	const { documentXml: tableDocXml } = await packAndReadXml(tableElements, tableDocPath);
+
+	assert.match(tableDocXml, /<w:tblHeader\/>/, 'Table header row must have tblHeader');
+	assert.match(tableDocXml, /<w:cantSplit\/>/, 'Table rows must have cantSplit');
+	assert.match(tableDocXml, /<w:b\/>/, 'Table header must have bold text');
+	assert.match(tableDocXml, /<w:jc w:val="center"\/>/, 'Table header must be centered');
+	assert.match(tableDocXml, /<w:vAlign w:val="center"\/>/, 'Table cells must be vertically centered');
+	assert.match(tableDocXml, /<w:br\/>/, '<br> tags must produce w:br runs');
+	assert.match(tableDocXml, /w:w="2807"/, 'Column widths from explicit widths hint must be applied');
+
 	console.log('Parser tests passed.');
 }
 

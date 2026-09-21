@@ -64,12 +64,38 @@ class MarkdownParser {
 	): Promise<DocxElement[]> {
 		const elements: DocxElement[] = [];
 		let activeStructuralHeading = currentContext.structuralHeading;
+		let pendingTableWidths: number[] | undefined;
 		for (const token of tokensToProcess) {
 			const tokenContext: ProcessTokensContext = {
 				...currentContext,
 				structuralHeading: activeStructuralHeading,
 			};
+			if (token.type !== 'space' && token.type !== 'html') {
+				// Clear pending widths if intervening content appears before table
+				if (token.type !== 'table') {
+					pendingTableWidths = undefined;
+				}
+			}
 			switch (token.type) {
+				case 'html': {
+					const rawHtml =
+						(token as Tokens.HTML).raw ||
+						(token as Tokens.HTML).text ||
+						'';
+					const match = rawHtml.match(
+						/<!--\s*widths:\s*([0-9\s,%.]+)\s*-->/i,
+					);
+					if (match) {
+						const parts = match[1]
+							.split(',')
+							.map(s => parseFloat(s.trim().replace('%', '')))
+							.filter(n => !isNaN(n) && n > 0);
+						if (parts.length > 0) {
+							pendingTableWidths = parts;
+						}
+					}
+					break;
+				}
 				case 'stoFlag':
 					elements.push(
 						...(await handleStoFlag(
@@ -150,15 +176,20 @@ class MarkdownParser {
 					break;
 				case 'table':
 					elements.push(
-						await handleTable(token as Tokens.Table, tks =>
-							parseInline(
-								tks,
-								this.context,
-								key => getCitationNumber(this.context, key),
-								text => this.references.replaceRefs(text),
-							),
+						await handleTable(
+							token as Tokens.Table,
+							(tks, opts) =>
+								parseInline(
+									tks,
+									this.context,
+									key => getCitationNumber(this.context, key),
+									text => this.references.replaceRefs(text),
+									opts,
+								),
+							pendingTableWidths,
 						),
 					);
+					pendingTableWidths = undefined;
 					break;
 				case 'space':
 					break;

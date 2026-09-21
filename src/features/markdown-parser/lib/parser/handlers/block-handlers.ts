@@ -3,8 +3,10 @@ import {
 	Paragraph,
 	Table,
 	TableCell,
+	TableLayoutType,
 	TableRow,
 	TextRun,
+	VerticalAlign,
 	WidthType,
 } from 'docx';
 import { Tokens as MarkedTokens, Token } from 'marked';
@@ -240,39 +242,191 @@ export async function handleList(
 	return elements;
 }
 
+const TOTAL_TABLE_WIDTH_DXA = 9355; // A4 (11906) - Left margin (1701) - Right margin (850)
+
+export function computeTableColumnWidths(
+	token: MarkedTokens.Table,
+	explicitWidths?: number[],
+): number[] {
+	const numCols = token.header.length;
+	if (numCols === 0) return [];
+
+	// 1. Explicit widths from <!-- widths: ... -->
+	if (explicitWidths && explicitWidths.length === numCols) {
+		const sumExplicit = explicitWidths.reduce((a, b) => a + b, 0);
+		if (sumExplicit > 0) {
+			const widths = explicitWidths.map(w =>
+				Math.round((w / sumExplicit) * TOTAL_TABLE_WIDTH_DXA),
+			);
+			const diff =
+				TOTAL_TABLE_WIDTH_DXA - widths.reduce((a, b) => a + b, 0);
+			widths[widths.length - 1] += diff;
+			return widths;
+		}
+	}
+
+	// 2. Delimiter line dashes (|:---|:------------------|)
+	if (token.raw) {
+		const rawLines = token.raw
+			.split('\n')
+			.map(l => l.trim())
+			.filter(Boolean);
+		if (rawLines.length >= 2) {
+			const delimLine = rawLines[1];
+			if (/^\|?[\s:-]+\|/.test(delimLine)) {
+				const parts = delimLine
+					.split('|')
+					.map(p => p.trim())
+					.filter(p => p.length > 0);
+				if (parts.length === numCols) {
+					const dashCounts = parts.map(
+						p => (p.match(/-/g) || []).length,
+					);
+					const minDashes = Math.min(...dashCounts);
+					const maxDashes = Math.max(...dashCounts);
+					if (maxDashes - minDashes >= 3) {
+						const sumDashes = dashCounts.reduce((a, b) => a + b, 0);
+						const widths = dashCounts.map(d =>
+							Math.round((d / sumDashes) * TOTAL_TABLE_WIDTH_DXA),
+						);
+						const diff =
+							TOTAL_TABLE_WIDTH_DXA -
+							widths.reduce((a, b) => a + b, 0);
+						widths[widths.length - 1] += diff;
+						return widths;
+					}
+				}
+			}
+		}
+	}
+
+	// 3. Content-based measurement
+	const colMetrics = [];
+	for (let c = 0; c < numCols; c++) {
+		const headerText = token.header[c]?.text || '';
+		const cellTexts = [
+			headerText,
+			...token.rows.map(row => row[c]?.text || ''),
+		];
+
+		let maxWordLen = 0;
+		let totalLen = 0;
+		for (const text of cellTexts) {
+			const clean = text.replace(/<[^>]+>/g, ' ');
+			totalLen += clean.trim().length;
+			const words = clean.split(/[\s,;:()[\]{}]+/);
+			for (const w of words) {
+				if (w.length > maxWordLen) maxWordLen = w.length;
+			}
+		}
+		const avgLen = totalLen / cellTexts.length;
+		colMetrics.push({ c, maxWordLen, avgLen, totalLen });
+	}
+
+	const minWidths = colMetrics.map(m =>
+		Math.max(900, m.maxWordLen * 105 + 320),
+	);
+	const weights = colMetrics.map(m =>
+		Math.pow(Math.max(m.avgLen, 8), 0.55),
+	);
+	const sumWeights = weights.reduce((a, b) => a + b, 0);
+	const sumMin = minWidths.reduce((a, b) => a + b, 0);
+
+	let widths: number[];
+	if (sumMin < TOTAL_TABLE_WIDTH_DXA) {
+		const remaining = TOTAL_TABLE_WIDTH_DXA - sumMin;
+		widths = minWidths.map((minW, i) =>
+			Math.round(minW + (weights[i] / sumWeights) * remaining),
+		);
+	} else {
+		widths = weights.map(w =>
+			Math.round((w / sumWeights) * TOTAL_TABLE_WIDTH_DXA),
+		);
+		widths = widths.map(w => Math.max(800, w));
+	}
+
+	const diff = TOTAL_TABLE_WIDTH_DXA - widths.reduce((a, b) => a + b, 0);
+	widths[widths.length - 1] += diff;
+
+	return widths;
+}
+
+function getCellAlignment(
+	align: string | null,
+): (typeof AlignmentType)[keyof typeof AlignmentType] {
+	switch (align) {
+		case 'center':
+			return AlignmentType.CENTER;
+		case 'right':
+			return AlignmentType.RIGHT;
+		case 'left':
+		default:
+			return AlignmentType.LEFT;
+	}
+}
+
 /**
  * Handles table tokens and converts them to Docx Tables.
  */
 export async function handleTable(
 	token: MarkedTokens.Table,
-	parseInline: (tokens: Token[]) => Promise<InlineDocxElement[]>,
+	parseInline: (
+		tokens: Token[],
+		options?: { bold?: boolean; allowBold?: boolean },
+	) => Promise<InlineDocxElement[]>,
+	explicitWidths?: number[],
 ): Promise<Table> {
-	const rows = [];
+	const columnWidths = computeTableColumnWidths(token, explicitWidths);
+
+	const rows: TableRow[] = [];
 	for (const row of token.rows) {
-		const rowCells = [];
-		for (const cell of row) {
+		const rowCells: TableCell[] = [];
+		for (let colIdx = 0; colIdx < row.length; colIdx++) {
+			const cell = row[colIdx];
+			const alignType = getCellAlignment(token.align[colIdx]);
+			const colWidth = columnWidths[colIdx] ?? 1000;
+
 			rowCells.push(
 				new TableCell({
+					width: { size: colWidth, type: WidthType.DXA },
+					verticalAlign: VerticalAlign.CENTER,
 					children: [
 						new Paragraph({
 							style: 'TableText',
-							children: await parseInline(cell.tokens),
+							alignment: alignType,
+							children: await parseInline(cell.tokens, {
+								allowBold: true,
+							}),
 						}),
 					],
 				}),
 			);
 		}
-		rows.push(new TableRow({ children: rowCells }));
+		rows.push(
+			new TableRow({
+				cantSplit: true,
+				children: rowCells,
+			}),
+		);
 	}
 
-	const headerCells = [];
-	for (const cell of token.header) {
+	const headerCells: TableCell[] = [];
+	for (let colIdx = 0; colIdx < token.header.length; colIdx++) {
+		const cell = token.header[colIdx];
+		const colWidth = columnWidths[colIdx] ?? 1000;
+
 		headerCells.push(
 			new TableCell({
+				width: { size: colWidth, type: WidthType.DXA },
+				verticalAlign: VerticalAlign.CENTER,
 				children: [
 					new Paragraph({
 						style: 'TableText',
-						children: await parseInline(cell.tokens),
+						alignment: AlignmentType.CENTER,
+						children: await parseInline(cell.tokens, {
+							bold: true,
+							allowBold: true,
+						}),
 					}),
 				],
 			}),
@@ -281,10 +435,19 @@ export async function handleTable(
 	const headerRow = new TableRow({
 		children: headerCells,
 		tableHeader: true,
+		cantSplit: true,
 	});
 
 	return new Table({
-		width: { size: 100, type: WidthType.PERCENTAGE },
+		width: { size: TOTAL_TABLE_WIDTH_DXA, type: WidthType.DXA },
+		layout: TableLayoutType.FIXED,
+		columnWidths: columnWidths,
+		margins: {
+			top: 100,
+			bottom: 100,
+			left: 150,
+			right: 150,
+		},
 		rows: [headerRow, ...rows],
 	});
 }
