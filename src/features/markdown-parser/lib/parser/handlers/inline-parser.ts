@@ -190,7 +190,11 @@ async function handleText(
 	// Replace references @fig:key, etc.
 	text = replaceRefs(text);
 
-	if (text.includes('<br>') || text.includes('<br/>') || text.includes('<br />')) {
+	if (
+		text.includes('<br>') ||
+		text.includes('<br/>') ||
+		text.includes('<br />')
+	) {
 		const parts = text.split(/(<br\s*\/?>)/gi);
 		for (const part of parts) {
 			if (/^<br\s*\/?>$/i.test(part)) {

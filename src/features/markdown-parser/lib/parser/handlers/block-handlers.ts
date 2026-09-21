@@ -321,15 +321,18 @@ export function computeTableColumnWidths(
 		}
 		const avgLen = totalLen / cellTexts.length;
 		const effectiveMaxWordLen = Math.min(maxWordLen, 20);
-		colMetrics.push({ c, maxWordLen: effectiveMaxWordLen, avgLen, totalLen });
+		colMetrics.push({
+			c,
+			maxWordLen: effectiveMaxWordLen,
+			avgLen,
+			totalLen,
+		});
 	}
 
 	const minWidths = colMetrics.map(m =>
 		Math.max(900, m.maxWordLen * 110 + 350),
 	);
-	const weights = colMetrics.map(m =>
-		Math.pow(Math.max(m.avgLen, 8), 0.55),
-	);
+	const weights = colMetrics.map(m => Math.pow(Math.max(m.avgLen, 8), 0.55));
 	const sumWeights = weights.reduce((a, b) => a + b, 0);
 	const sumMin = minWidths.reduce((a, b) => a + b, 0);
 

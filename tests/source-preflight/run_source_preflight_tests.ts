@@ -1470,4 +1470,3 @@ expectPass(
 );
 
 console.log('Source preflight tests passed.');
-

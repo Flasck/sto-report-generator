@@ -254,14 +254,33 @@ async function main(): Promise<void> {
 		{},
 		{ sourceDir: tempRoot },
 	);
-	const { documentXml: tableDocXml } = await packAndReadXml(tableElements, tableDocPath);
+	const { documentXml: tableDocXml } = await packAndReadXml(
+		tableElements,
+		tableDocPath,
+	);
 
-	assert.match(tableDocXml, /<w:tblHeader\/>/, 'Table header row must have tblHeader');
-	assert.match(tableDocXml, /<w:cantSplit\/>/, 'Table rows must have cantSplit');
+	assert.match(
+		tableDocXml,
+		/<w:tblHeader\/>/,
+		'Table header row must have tblHeader',
+	);
+	assert.match(
+		tableDocXml,
+		/<w:cantSplit\/>/,
+		'Table rows must have cantSplit',
+	);
 	assert.match(tableDocXml, /<w:b\/>/, 'Table header must have bold text');
-	assert.match(tableDocXml, /<w:jc w:val="center"\/>/, 'Table header must be centered');
+	assert.match(
+		tableDocXml,
+		/<w:jc w:val="center"\/>/,
+		'Table header must be centered',
+	);
 	assert.match(tableDocXml, /<w:br\/>/, '<br> tags must produce w:br runs');
-	assert.match(tableDocXml, /w:w="2807"/, 'Column widths from explicit widths hint must be applied');
+	assert.match(
+		tableDocXml,
+		/w:w="2807"/,
+		'Column widths from explicit widths hint must be applied',
+	);
 
 	// Test widths comment preceding Table Caption paragraph ("Таблица X – ...")
 	const tableCaptionDocPath = path.join(tempRoot, 'table-caption-test.docx');
@@ -275,8 +294,15 @@ async function main(): Promise<void> {
 		{},
 		{ sourceDir: tempRoot },
 	);
-	const { documentXml: tableCaptionDocXml } = await packAndReadXml(tableCaptionElements, tableCaptionDocPath);
-	assert.match(tableCaptionDocXml, /w:w="3742"/, 'Explicit widths hint preceding table caption must not be cleared');
+	const { documentXml: tableCaptionDocXml } = await packAndReadXml(
+		tableCaptionElements,
+		tableCaptionDocPath,
+	);
+	assert.match(
+		tableCaptionDocXml,
+		/w:w="3742"/,
+		'Explicit widths hint preceding table caption must not be cleared',
+	);
 
 	console.log('Parser tests passed.');
 }
