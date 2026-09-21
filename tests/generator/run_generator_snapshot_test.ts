@@ -17,7 +17,7 @@ const snapshotFile = path.join(
 );
 
 function formatXml(xml: string): string {
-	return xml.replaceAll(/>\s*</g, '>\n<').trim();
+	return xml.replaceAll(/\r\n?/g, '\n').replaceAll(/>\s*</g, '>\n<').trim();
 }
 
 function firstDifference(expectedXml: string, actualXml: string): string {
@@ -55,7 +55,7 @@ async function main(): Promise<void> {
 		return;
 	}
 
-	const expectedXml = fs.readFileSync(snapshotFile, 'utf-8');
+	const expectedXml = formatXml(fs.readFileSync(snapshotFile, 'utf-8'));
 	if (formattedXml === expectedXml) {
 		console.log('Generator snapshot test passed.');
 		return;
