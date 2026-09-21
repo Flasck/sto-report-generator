@@ -10,6 +10,8 @@ interface PackResult {
 	files: PackedFile[];
 }
 
+const tsxCliPath = require.resolve('tsx/cli');
+
 const forbiddenPrefixes = [
 	'.agents/',
 	'.github/',
@@ -37,11 +39,19 @@ const forbiddenExactPaths = new Set([
 ]);
 
 function runPackDryRun(): PackResult[] {
-	const result = spawnSync('npm', ['pack', '--dry-run', '--json'], {
-		cwd: process.cwd(),
-		encoding: 'utf8',
-		shell: false,
-	});
+	const npmCliPath = process.env.npm_execpath;
+	if (!npmCliPath) {
+		throw new Error('npm_execpath is required to run the package audit.');
+	}
+	const result = spawnSync(
+		process.execPath,
+		[npmCliPath, 'pack', '--dry-run', '--json'],
+		{
+			cwd: process.cwd(),
+			encoding: 'utf8',
+			shell: false,
+		},
+	);
 
 	if (result.error) {
 		throw result.error;
@@ -64,8 +74,15 @@ function runPackDryRun(): PackResult[] {
 
 function runPortableExampleAudit(): void {
 	const result = spawnSync(
-		process.platform === 'win32' ? 'npx.cmd' : 'npx',
-		['tsx', 'src/index.ts', 'audit', 'example', '--renderer', 'portable'],
+		process.execPath,
+		[
+			tsxCliPath,
+			'src/index.ts',
+			'audit',
+			'example',
+			'--renderer',
+			'portable',
+		],
 		{
 			cwd: process.cwd(),
 			encoding: 'utf8',
