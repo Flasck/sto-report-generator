@@ -7,6 +7,7 @@ const tests = [
 	['tests/source-preflight/regression_checks.ts', 'example'],
 	['tests/source-preflight/masking_regression_test.ts'],
 	['tests/parser/run_parser_tests.ts'],
+	['tests/parser/table_layout.test.ts'],
 	['tests/shared/run_math_converter_tests.ts'],
 	['tests/validator/run_validator_tests.ts'],
 	['tests/generator/run_generated_docx_validation.ts'],

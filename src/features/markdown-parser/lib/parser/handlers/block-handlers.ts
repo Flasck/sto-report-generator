@@ -343,12 +343,16 @@ export function computeTableColumnWidths(
 			Math.round(minW + (weights[i] / sumWeights) * remaining),
 		);
 	} else {
-		// When sumMin exceeds total width, scale minWidths proportionally
-		// rather than discarding them, so narrow columns don't collapse.
-		widths = minWidths.map(minW =>
-			Math.round((minW / sumMin) * TOTAL_TABLE_WIDTH_DXA),
+		// When sumMin exceeds total table width, distribute proportionally to minWidths
+		const colFloor = Math.max(
+			200,
+			Math.floor(TOTAL_TABLE_WIDTH_DXA / numCols),
 		);
-		widths = widths.map(w => Math.max(900, w));
+		const effectiveMin = minWidths.map(minW => Math.max(colFloor, minW));
+		const sumEffective = effectiveMin.reduce((a, b) => a + b, 0);
+		widths = effectiveMin.map(w =>
+			Math.floor((w / sumEffective) * TOTAL_TABLE_WIDTH_DXA),
+		);
 	}
 
 	const diff = TOTAL_TABLE_WIDTH_DXA - widths.reduce((a, b) => a + b, 0);
